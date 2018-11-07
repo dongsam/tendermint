@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"math"
 
 	"github.com/tendermint/tendermint/crypto/tmhash"
 
@@ -26,7 +27,7 @@ func NewValidator(pubKey crypto.PubKey, votingPower int64) *Validator {
 		Address:     pubKey.Address(),
 		PubKey:      pubKey,
 		VotingPower: votingPower,
-		Accum:       0,
+		Accum:       math.MinInt64,
 	}
 }
 
@@ -81,13 +82,13 @@ func (v *Validator) Hash() []byte {
 // as its redundant with the pubkey. This also excludes accum which changes
 // every round.
 func (v *Validator) Bytes() []byte {
-	return cdcEncode((struct {
+	return cdcEncode(struct {
 		PubKey      crypto.PubKey
 		VotingPower int64
 	}{
 		v.PubKey,
 		v.VotingPower,
-	}))
+	})
 }
 
 //----------------------------------------
