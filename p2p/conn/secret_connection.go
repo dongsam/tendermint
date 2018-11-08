@@ -9,10 +9,10 @@ import (
 	"io"
 	"net"
 	"time"
-
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/nacl/box"
+	"fmt"
 
 	"github.com/tendermint/tendermint/crypto"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -112,6 +112,9 @@ func (sc *SecretConnection) RemotePubKey() crypto.PubKey {
 // Writes encrypted frames of `sealedFrameSize`
 // CONTRACT: data smaller than dataMaxSize is read atomically.
 func (sc *SecretConnection) Write(data []byte) (n int, err error) {
+	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ write")
+	fmt.Println(data)
+	fmt.Printf("%x ", data)
 	for 0 < len(data) {
 		var frame = make([]byte, totalFrameSize)
 		var chunk []byte
@@ -147,6 +150,9 @@ func (sc *SecretConnection) Write(data []byte) (n int, err error) {
 
 // CONTRACT: data smaller than dataMaxSize is read atomically.
 func (sc *SecretConnection) Read(data []byte) (n int, err error) {
+	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ read")
+	fmt.Println(data)
+	fmt.Printf("%x ", data)
 	if 0 < len(sc.recvBuffer) {
 		n = copy(data, sc.recvBuffer)
 		sc.recvBuffer = sc.recvBuffer[n:]
@@ -180,6 +186,9 @@ func (sc *SecretConnection) Read(data []byte) (n int, err error) {
 
 	n = copy(data, chunk)
 	sc.recvBuffer = chunk[n:]
+	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ read chunk")
+	fmt.Println(chunk)
+	fmt.Printf("%x ", chunk)
 	return
 }
 
