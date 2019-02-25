@@ -30,6 +30,9 @@ const (
 	// Uvarint length of Data.Txs:          4 bytes
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
+	BaseCustomLogPath = "./custom_log"
+	CustomLogFlag = "./CustomLogFlag"
+	CustomLogPrintFlag = "./CustomLogPrintFlag"
 )
 
 // Block defines the atomic unit of a Tendermint blockchain.
@@ -40,7 +43,17 @@ type Block struct {
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
 }
-
+//type
+type BlockExtended struct {
+	Block *Block      `json:"block"`
+	Validators []*Validator `json:"validators"`
+	Proposer   *Validator   `json:"proposer"`
+	TotalVotingPower int64  `json:"total_voting_power"`
+	MissingValidatorsCount int64  `json:"missing_validators_count"`
+	MissingValidatorsPower int64  `json:"missing_validators_power"`
+	MissingValidators []*Validator `json:"missing_validators"`
+}
+// TODO: CUSTOMLOG
 // MakeBlock returns a new block with an empty header, except what can be
 // computed from itself.
 // It populates the same set of fields validated by ValidateBasic.

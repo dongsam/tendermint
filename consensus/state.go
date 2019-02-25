@@ -2,7 +2,11 @@ package consensus
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -503,6 +507,21 @@ func (cs *ConsensusState) reconstructLastCommit(state sm.State) {
 // Updates ConsensusState and increments height to match that of state.
 // The round becomes 0 and cs.Step becomes cstypes.RoundStepNewHeight.
 func (cs *ConsensusState) updateToState(state sm.State) {
+	if _, err := os.Stat(types.CustomLogFlag); err == nil { // is exists
+		// TODO: CUSTOMLOG
+		JsonStr, _ := json.Marshal(cs.RoundState)
+		JsonFileName := fmt.Sprintf("%d_%d_%d.json", cs.Height, cs.RoundState.Round, cs.RoundState.Step)
+		JsonPathDir := path.Join(types.BaseCustomLogPath, cs.state.ChainID, "tendermint_round")
+		JsonFullPath := path.Join(JsonPathDir, JsonFileName)
+		if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
+			os.MkdirAll(JsonPathDir, os.ModePerm)
+		}
+		err2 := ioutil.WriteFile(JsonFullPath, JsonStr, 0644)
+		if err2 != nil {
+			fmt.Println(JsonFullPath, err2)
+		}
+	}
+
 	if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {
 		cmn.PanicSanity(fmt.Sprintf("updateToState() expected state height of %v but found %v",
 			cs.Height, state.LastBlockHeight))
@@ -572,6 +591,7 @@ func (cs *ConsensusState) updateToState(state sm.State) {
 
 	// Finally, broadcast RoundState
 	cs.newStep()
+
 }
 
 func (cs *ConsensusState) newStep() {
@@ -1347,13 +1367,15 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
+	//fmt.Println("%%%%%%%%%% RoundState | ", cs.RoundState.StringIndented(" "))
+	//fmt.Println("%%%%%%%%%% ConsensusState | ", cs.String())
 
 	// By here,
 	// * cs.Height has been increment to height+1
 	// * cs.Step is now cstypes.RoundStepNewHeight
 	// * cs.StartTime is set to when we will start round0.
 }
-
+// TODO: CUSTOMLOG
 func (cs *ConsensusState) recordMetrics(height int64, block *types.Block) {
 	cs.metrics.Validators.Set(float64(cs.Validators.Size()))
 	cs.metrics.ValidatorsPower.Set(float64(cs.Validators.TotalVotingPower()))
@@ -1368,6 +1390,7 @@ func (cs *ConsensusState) recordMetrics(height int64, block *types.Block) {
 			missingValidators++
 			missingValidatorsPower += val.VotingPower
 		}
+		//fmt.Println(val, val.ProposerPriority)
 	}
 	cs.metrics.MissingValidators.Set(float64(missingValidators))
 	cs.metrics.MissingValidatorsPower.Set(float64(missingValidatorsPower))
@@ -1391,6 +1414,9 @@ func (cs *ConsensusState) recordMetrics(height int64, block *types.Block) {
 	cs.metrics.BlockSizeBytes.Set(float64(block.Size()))
 	cs.metrics.TotalTxs.Set(float64(block.TotalTxs))
 	cs.metrics.CommittedHeight.Set(float64(block.Height))
+
+	//fmt.Println(cs.Votes.StringIndented(" "))
+	//fmt.Println("%%%% metric |", cs.metrics)
 
 }
 

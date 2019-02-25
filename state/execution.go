@@ -1,7 +1,11 @@
 package state
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -170,6 +174,47 @@ func (blockExec *BlockExecutor) ApplyBlock(state State, blockID types.BlockID, b
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+
+	if _, err := os.Stat(types.CustomLogFlag); err == nil { // is exists
+		// TODO: CUSTOMLOG
+		blockExtended := types.BlockExtended{}
+		blockExtended.Block = block
+		blockExtended.Validators = state.Validators.Validators
+		blockExtended.Proposer = state.Validators.Proposer
+		blockExtended.TotalVotingPower = state.Validators.TotalVotingPower()
+		//blockExtended.MissingValidators = []*Validator
+		blockExtended.MissingValidatorsCount = 0
+		blockExtended.MissingValidatorsPower = int64(0)
+
+		//block_for_json.
+		for i, val := range state.Validators.Validators {
+			var vote *types.CommitSig
+			if i < len(block.LastCommit.Precommits) {
+				vote = block.LastCommit.Precommits[i]
+			}
+			//fmt.Println(val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1, vote)
+			if vote == nil {
+				blockExtended.MissingValidatorsCount++
+				blockExtended.MissingValidatorsPower += val.VotingPower
+				blockExtended.MissingValidators = append(blockExtended.MissingValidators, val)
+				//fmt.Println("missing", val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1, vote)
+			}
+			//fmt.Println(val, val.ProposerPriority)
+		}
+
+		// TODO: CUSTOMLOG
+		JsonStr, _ := json.Marshal(blockExtended)
+		JsonFileName := fmt.Sprintf("%d.json", block.Height)
+		JsonPathDir := path.Join(types.BaseCustomLogPath, block.ChainID, "tendermint")
+		JsonFullPath := path.Join(JsonPathDir, JsonFileName)
+		if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
+			os.MkdirAll(JsonPathDir, os.ModePerm)
+		}
+		err2 := ioutil.WriteFile(JsonFullPath, JsonStr, 0644)
+		if err2 != nil {
+			fmt.Println(JsonFullPath, err2)
+		}
+	}
 
 	return state, nil
 }
