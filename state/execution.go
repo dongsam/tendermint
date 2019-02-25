@@ -1,7 +1,11 @@
 package state
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -171,6 +175,32 @@ func (blockExec *BlockExecutor) ApplyBlock(state State, blockID types.BlockID, b
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
+	// TODO: CUSTOMLOG
+	JsonStr, _ := json.Marshal(block)
+	JsonFileName := fmt.Sprintf("%d.json", block.Height)
+	JsonPathDir := path.Join(types.BaseCustomLogPath, block.ChainID + "_tendermint")
+	JsonFullPath := path.Join(JsonPathDir, JsonFileName)
+	if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
+		os.MkdirAll(JsonPathDir, os.ModePerm)
+	}
+	err2 := ioutil.WriteFile(JsonFullPath, JsonStr, 0644)
+	if err2 != nil {
+		fmt.Println(JsonFullPath, err2)
+	}
+	//blockLogStr, _ := json.Marshal(block)
+	//BlockLogFileName := fmt.Sprintf("%d.json", block.Height)
+	//customLogPathDir := path.Join(types.BaseCustomLogPath, block.ChainID + "_tendermint")
+	//BlockLogPathJson := path.Join(customLogPathDir, BlockLogFileName)
+	//if _, err := os.Stat(customLogPathDir); os.IsNotExist(err) {
+	//	os.MkdirAll(customLogPathDir, os.ModePerm)
+	//}
+	//err2 := ioutil.WriteFile(BlockLogPathJson, blockLogStr, 0644)
+	//if err2 != nil {
+	//	fmt.Println(BlockLogPathJson, err2)
+	//}
+	//fmt.Println(blockLogStr)
+	//block.Height
+	//block.LastCommit
 	return state, nil
 }
 

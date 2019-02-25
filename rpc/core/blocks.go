@@ -331,7 +331,7 @@ func Commit(heightPtr *int64) (*ctypes.ResultCommit, error) {
 	commit := blockStore.LoadBlockCommit(height)
 	return ctypes.NewResultCommit(&header, commit, true), nil
 }
-
+// TODO: CUSTOMLOG
 // BlockResults gets ABCIResults at a given height.
 // If no height is provided, it will fetch results for the latest block.
 //
