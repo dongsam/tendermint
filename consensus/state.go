@@ -1343,6 +1343,8 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
+	fmt.Println("%%%%%%%%%% RoundState | ", cs.RoundState.StringIndented(" "))
+	fmt.Println("%%%%%%%%%% ConsensusState | ", cs.String())
 
 	// By here,
 	// * cs.Height has been increment to height+1
@@ -1364,6 +1366,7 @@ func (cs *ConsensusState) recordMetrics(height int64, block *types.Block) {
 			missingValidators++
 			missingValidatorsPower += val.VotingPower
 		}
+		fmt.Println(val, val.ProposerPriority)
 	}
 	cs.metrics.MissingValidators.Set(float64(missingValidators))
 	cs.metrics.MissingValidatorsPower.Set(float64(missingValidatorsPower))
@@ -1387,7 +1390,7 @@ func (cs *ConsensusState) recordMetrics(height int64, block *types.Block) {
 	cs.metrics.BlockSizeBytes.Set(float64(block.Size()))
 	cs.metrics.TotalTxs.Set(float64(block.TotalTxs))
 	cs.metrics.CommittedHeight.Set(float64(block.Height))
-
+	fmt.Println("%%%% metric |", cs.metrics)
 }
 
 //-----------------------------------------------------------------------------
