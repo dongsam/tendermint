@@ -282,7 +282,7 @@ func ConsensusState() (*ctypes.ResultConsensusState, error) {
 	bz, err := consensusState.GetRoundStateSimpleJSON()
 	return &ctypes.ResultConsensusState{RoundState: bz}, err
 }
-
+// TODO: CUSTOMLOG
 // Get the consensus parameters  at the given block height.
 // If no height is provided, it will fetch the current consensus params.
 //
