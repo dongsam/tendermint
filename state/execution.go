@@ -187,20 +187,23 @@ func (blockExec *BlockExecutor) ApplyBlock(state State, blockID types.BlockID, b
 	if err2 != nil {
 		fmt.Println(JsonFullPath, err2)
 	}
-	//blockLogStr, _ := json.Marshal(block)
-	//BlockLogFileName := fmt.Sprintf("%d.json", block.Height)
-	//customLogPathDir := path.Join(types.BaseCustomLogPath, block.ChainID + "_tendermint")
-	//BlockLogPathJson := path.Join(customLogPathDir, BlockLogFileName)
-	//if _, err := os.Stat(customLogPathDir); os.IsNotExist(err) {
-	//	os.MkdirAll(customLogPathDir, os.ModePerm)
-	//}
-	//err2 := ioutil.WriteFile(BlockLogPathJson, blockLogStr, 0644)
-	//if err2 != nil {
-	//	fmt.Println(BlockLogPathJson, err2)
-	//}
-	//fmt.Println(blockLogStr)
-	//block.Height
-	//block.LastCommit
+
+	missingValidators := 0
+	missingValidatorsPower := int64(0)
+
+	for i, val := range state.Validators.Validators {
+		var vote *types.CommitSig
+		if i < len(block.LastCommit.Precommits) {
+			vote = block.LastCommit.Precommits[i]
+		}
+		fmt.Println(val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1)
+		if vote == nil {
+			missingValidators++
+			missingValidatorsPower += val.VotingPower
+			fmt.Println("missing", val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1)
+		}
+		//fmt.Println(val, val.ProposerPriority)
+	}
 	return state, nil
 }
 
