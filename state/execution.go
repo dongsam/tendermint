@@ -175,8 +175,35 @@ func (blockExec *BlockExecutor) ApplyBlock(state State, blockID types.BlockID, b
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
+
 	// TODO: CUSTOMLOG
-	JsonStr, _ := json.Marshal(block)
+	blockExtended := types.BlockExtended{}
+	blockExtended.Block = block
+	blockExtended.Validators = state.Validators.Validators
+	blockExtended.Proposer = state.Validators.Proposer
+	blockExtended.TotalVotingPower = state.Validators.TotalVotingPower()
+	//blockExtended.MissingValidators = []*Validator
+	blockExtended.MissingValidatorsCount = 0
+	blockExtended.MissingValidatorsPower = int64(0)
+
+	//block_for_json.
+	for i, val := range state.Validators.Validators {
+		var vote *types.CommitSig
+		if i < len(block.LastCommit.Precommits) {
+			vote = block.LastCommit.Precommits[i]
+		}
+		//fmt.Println(val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1, vote)
+		if vote == nil {
+			blockExtended.MissingValidatorsCount++
+			blockExtended.MissingValidatorsPower += val.VotingPower
+			blockExtended.MissingValidators = append(blockExtended.MissingValidators, val)
+			//fmt.Println("missing", val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1, vote)
+		}
+		//fmt.Println(val, val.ProposerPriority)
+	}
+
+	// TODO: CUSTOMLOG
+	JsonStr, _ := json.Marshal(blockExtended)
 	JsonFileName := fmt.Sprintf("%d.json", block.Height)
 	JsonPathDir := path.Join(types.BaseCustomLogPath, block.ChainID + "_tendermint")
 	JsonFullPath := path.Join(JsonPathDir, JsonFileName)
@@ -188,22 +215,7 @@ func (blockExec *BlockExecutor) ApplyBlock(state State, blockID types.BlockID, b
 		fmt.Println(JsonFullPath, err2)
 	}
 
-	missingValidators := 0
-	missingValidatorsPower := int64(0)
 
-	for i, val := range state.Validators.Validators {
-		var vote *types.CommitSig
-		if i < len(block.LastCommit.Precommits) {
-			vote = block.LastCommit.Precommits[i]
-		}
-		fmt.Println(val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1)
-		if vote == nil {
-			missingValidators++
-			missingValidatorsPower += val.VotingPower
-			fmt.Println("missing", val.Address, val.ProposerPriority, val.VotingPower, block.Height-1, state.LastBlockHeight-1)
-		}
-		//fmt.Println(val, val.ProposerPriority)
-	}
 	return state, nil
 }
 
