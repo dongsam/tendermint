@@ -507,17 +507,19 @@ func (cs *ConsensusState) reconstructLastCommit(state sm.State) {
 // Updates ConsensusState and increments height to match that of state.
 // The round becomes 0 and cs.Step becomes cstypes.RoundStepNewHeight.
 func (cs *ConsensusState) updateToState(state sm.State) {
-	// TODO: CUSTOMLOG
-	JsonStr, _ := json.Marshal(cs.RoundState)
-	JsonFileName := fmt.Sprintf("%d_%d_%d.json", cs.Height, cs.RoundState.Round, cs.RoundState.Step)
-	JsonPathDir := path.Join(types.BaseCustomLogPath, cs.state.ChainID, "tendermint_round")
-	JsonFullPath := path.Join(JsonPathDir, JsonFileName)
-	if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
-		os.MkdirAll(JsonPathDir, os.ModePerm)
-	}
-	err2 := ioutil.WriteFile(JsonFullPath, JsonStr, 0644)
-	if err2 != nil {
-		fmt.Println(JsonFullPath, err2)
+	if _, err := os.Stat(types.CustomLogFlag); err == nil { // is exists
+		// TODO: CUSTOMLOG
+		JsonStr, _ := json.Marshal(cs.RoundState)
+		JsonFileName := fmt.Sprintf("%d_%d_%d.json", cs.Height, cs.RoundState.Round, cs.RoundState.Step)
+		JsonPathDir := path.Join(types.BaseCustomLogPath, cs.state.ChainID, "tendermint_round")
+		JsonFullPath := path.Join(JsonPathDir, JsonFileName)
+		if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
+			os.MkdirAll(JsonPathDir, os.ModePerm)
+		}
+		err2 := ioutil.WriteFile(JsonFullPath, JsonStr, 0644)
+		if err2 != nil {
+			fmt.Println(JsonFullPath, err2)
+		}
 	}
 
 	if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {

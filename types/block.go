@@ -31,6 +31,8 @@ const (
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
 	BaseCustomLogPath = "./custom_log"
+	CustomLogFlag = "./CustomLogFlag"
+	CustomLogPrintFlag = "./CustomLogPrintFlag"
 )
 
 // Block defines the atomic unit of a Tendermint blockchain.
