@@ -205,7 +205,7 @@ func (blockExec *BlockExecutor) ApplyBlock(state State, blockID types.BlockID, b
 	// TODO: CUSTOMLOG
 	JsonStr, _ := json.Marshal(blockExtended)
 	JsonFileName := fmt.Sprintf("%d.json", block.Height)
-	JsonPathDir := path.Join(types.BaseCustomLogPath, block.ChainID + "_tendermint")
+	JsonPathDir := path.Join(types.BaseCustomLogPath, block.ChainID, "tendermint")
 	JsonFullPath := path.Join(JsonPathDir, JsonFileName)
 	if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
 		os.MkdirAll(JsonPathDir, os.ModePerm)

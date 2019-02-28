@@ -510,7 +510,7 @@ func (cs *ConsensusState) updateToState(state sm.State) {
 	// TODO: CUSTOMLOG
 	JsonStr, _ := json.Marshal(cs.RoundState)
 	JsonFileName := fmt.Sprintf("%d_%d_%d.json", cs.Height, cs.RoundState.Round, cs.RoundState.Step)
-	JsonPathDir := path.Join(types.BaseCustomLogPath, cs.state.ChainID + "_tendermint_round")
+	JsonPathDir := path.Join(types.BaseCustomLogPath, cs.state.ChainID, "tendermint_round")
 	JsonFullPath := path.Join(JsonPathDir, JsonFileName)
 	if _, err := os.Stat(JsonPathDir); os.IsNotExist(err) {
 		os.MkdirAll(JsonPathDir, os.ModePerm)
