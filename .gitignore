@@ -42,3 +42,4 @@ terraform.tfstate.backup
 terraform.tfstate.d
 
 .vscode
+.vendor-new/

@@ -2,6 +2,7 @@ package pex
 
 import (
 	"fmt"
+
 	"io/ioutil"
 	"os"
 	"path/filepath"
