@@ -29,7 +29,7 @@ func registerDBCreator(backend DBBackendType, creator dbCreator, force bool) {
 	}
 	backends[backend] = creator
 }
-
+// TODO: leveldb
 // NewDB creates a new database of type backend with the given name.
 // NOTE: function panics if:
 //   - backend is unknown (not registered)
@@ -47,6 +47,7 @@ func NewDB(name string, backend DBBackendType, dir string) DB {
 	}
 
 	db, err := dbCreator(name, dir)
+	//dbCreator(name, dir + "_clone")
 	if err != nil {
 		panic(fmt.Sprintf("Error initializing DB: %v", err))
 	}

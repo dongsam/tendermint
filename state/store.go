@@ -92,7 +92,7 @@ func loadState(db dbm.DB, key []byte) (state State) {
 func SaveState(db dbm.DB, state State) {
 	saveState(db, state, stateKey)
 }
-
+// TODO: leveldb
 func saveState(db dbm.DB, state State, key []byte) {
 	nextHeight := state.LastBlockHeight + 1
 	// If first block, save validators for block 1.

@@ -273,7 +273,7 @@ func (pb *playback) replayConsoleLoop() int {
 }
 
 //--------------------------------------------------------------------------------
-
+// TODO: leveldb
 // convenience for replay mode
 func newConsensusStateForReplay(config cfg.BaseConfig, csConfig *cfg.ConsensusConfig) *ConsensusState {
 	dbType := dbm.DBBackendType(config.DBBackend)

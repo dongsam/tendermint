@@ -79,6 +79,11 @@
   name = "github.com/jmhodges/levigo"
   version = "^1.0.0"
 
+[[override]]
+  name = "github.com/syndtr/goleveldb"
+  revision = "83bf9c14d82481a83672a5cbee4630d6d678f5f9"
+  source = "https://github.com/dongsam/goleveldb.git"
+
 ###################################
 ## Repos which don't have releases.
 
