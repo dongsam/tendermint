@@ -41,6 +41,7 @@ require (
 	github.com/spf13/viper v1.0.0
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
+	github.com/tecbot/gorocksdb v0.0.0-20190705090504-162552197222
 	github.com/tendermint/go-amino v0.14.1
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
