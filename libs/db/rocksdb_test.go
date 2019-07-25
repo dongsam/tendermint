@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/binary"
 	"fmt"
 	"testing"
 
@@ -15,9 +16,10 @@ func TestRocksDBRocksDB(t *testing.T) {
 	// Test we can't open the db twice for writing
 	wr1, err := NewRocksDB(name, "")
 	require.Nil(t, err)
-	_, err = NewRocksDB(name, "")
-	require.NotNil(t, err)
-	wr1.Close() // Close the db to release the lock
+	wr1.Close()
+	wr2, err := NewRocksDB(name, "")
+	require.Nil(t, err)
+	wr2.Close() // Close the db to release the lock
 
 	// Test we can open the db twice for reading only
 	ro1, err := NewRocksDB(name, "")
@@ -26,6 +28,28 @@ func TestRocksDBRocksDB(t *testing.T) {
 	ro2, err := NewRocksDB(name, "")
 	defer ro2.Close()
 	require.Nil(t, err)
+
+	rb := ro1.NewBatch()
+	buf := make([]byte, 8)
+	buf2 := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(10))
+	binary.BigEndian.PutUint64(buf2, uint64(20))
+	rb.Set(buf, buf)
+	rb.Write()
+	require.Equal(t, ro1.Has(buf), true)
+	require.Equal(t, ro1.Has(buf2), false)
+	require.Equal(t, ro1.Get(buf), buf)
+
+	require.Equal(t, ro2.Has(buf), false)
+	require.NotEqual(t, ro2.Get(buf), buf)
+
+	ro3, err := NewRocksDB(name, "")
+	defer ro3.Close()
+	require.Nil(t, err)
+	require.Equal(t, ro3.Has(buf), true)
+	require.Equal(t, ro3.Has(buf2), false)
+	require.Equal(t, ro3.Get(buf), buf)
+
 }
 
 func BenchmarkRocksDBRandomReadsWrites(b *testing.B) {

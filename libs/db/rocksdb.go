@@ -42,8 +42,13 @@ func NewRocksDB(name, dir string) (*RocksDB, error) {
 	//opts := gorocksdb.NewDefaultOptions()
 	//db, columnFamilyHandles, err := gorocksdb.OpenDbColumnFamilies(defaultOpts, dbPath, columnFamilyNames, []*gorocksdb.Options{opts, opts, opts})
 	db, err := gorocksdb.OpenDb(defaultOpts, dbPath)
+	//db, err := gorocksdb.OpenDbForReadOnly(defaultOpts, dbPath, false)
 	if err != nil {
-		fmt.Println("DB open error", err)
+		fmt.Println("DB open error, try readonly", err)
+		db, err = gorocksdb.OpenDbForReadOnly(defaultOpts, dbPath, false)
+	}
+	if err != nil {
+		fmt.Println("DB open error 2", err)
 		return nil, err
 	}
 
@@ -158,7 +163,6 @@ func (db *RocksDB) DB() *gorocksdb.DB {
 // Implements DB.
 func (db *RocksDB) Close() {
 	db.db.Close()
-	db.Close()
 }
 
 // Implements DB.
@@ -228,7 +232,7 @@ func (db *RocksDB) Stats() map[string]string {
 
 
 func (db *RocksDB) NewBatch() Batch {
-	batch := new(gorocksdb.WriteBatch)
+	batch := gorocksdb.NewWriteBatch()
 	return &rocksDBBatch{db, batch}
 }
 
@@ -266,7 +270,9 @@ func (mBatch *rocksDBBatch) WriteSync() {
 
 // Implements Batch.
 // Close is no-op for goLevelDBBatch.
-func (mBatch *rocksDBBatch) Close() {}
+func (mBatch *rocksDBBatch) Close() {
+	mBatch.db.Close()
+}
 
 //----------------------------------------
 // Iterator
