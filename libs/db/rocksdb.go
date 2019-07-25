@@ -6,10 +6,6 @@ import (
 	"github.com/tecbot/gorocksdb"
 	"path/filepath"
 
-	//"github.com/syndtr/goleveldb/leveldb"
-	//"github.com/syndtr/goleveldb/leveldb/errors"
-	//"github.com/syndtr/goleveldb/leveldb/iterator"
-	//"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 func init() {
@@ -231,9 +227,9 @@ func (db *RocksDB) Stats() map[string]string {
 // Batch
 
 
-func (db *RocksDB) NewBatch() Batch {
+func (db RocksDB) NewBatch() Batch {
 	batch := gorocksdb.NewWriteBatch()
-	return &rocksDBBatch{db, batch}
+	return &rocksDBBatch{&db, batch}
 }
 
 type rocksDBBatch struct {
@@ -280,20 +276,20 @@ func (mBatch *rocksDBBatch) Close() {
 // Before creating a third version, refactor.
 
 // Implements DB.
-func (db *RocksDB) Iterator(start, end []byte) Iterator {
+func (db RocksDB) Iterator(start, end []byte) Iterator {
 	itr := db.db.NewIterator(db.ro)
 	//itr := db.db.NewIterator(nil, nil)
-	return newRocksDBIterator(*itr, start, end, false)
+	return newRocksDBIterator(itr, start, end, false)
 }
 
 // Implements DB.
 func (db *RocksDB) ReverseIterator(start, end []byte) Iterator {
 	itr := db.db.NewIterator(db.ro)
-	return newRocksDBIterator(*itr, start, end, true)
+	return newRocksDBIterator(itr, start, end, true)
 }
 
 type rocksDBIterator struct {
-	source    gorocksdb.Iterator
+	source    *gorocksdb.Iterator
 	start     []byte
 	end       []byte
 	isReverse bool
@@ -302,7 +298,7 @@ type rocksDBIterator struct {
 
 var _ Iterator = (*rocksDBIterator)(nil)
 
-func newRocksDBIterator(source gorocksdb.Iterator, start, end []byte, isReverse bool) *rocksDBIterator {
+func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse bool) *rocksDBIterator {
 	if isReverse {
 		if end == nil {
 			source.SeekToLast()
@@ -377,26 +373,8 @@ func (itr *rocksDBIterator) Valid() bool {
 	return true
 }
 
-// Implements Iterator.
-func (itr *rocksDBIterator) Key() []byte {
-	// Key returns a copy of the current key.
-	// See https://github.com/syndtr/goleveldb/blob/52c212e6c196a1404ea59592d3f1c227c9f034b2/leveldb/iterator/iter.go#L88
-	itr.assertNoError()
-	itr.assertIsValid()
-	return cp(itr.source.Key().Data())
-}
 
-// Implements Iterator.
-func (itr *rocksDBIterator) Value() []byte {
-	// Value returns a copy of the current value.
-	// See https://github.com/syndtr/goleveldb/blob/52c212e6c196a1404ea59592d3f1c227c9f034b2/leveldb/iterator/iter.go#L88
-	itr.assertNoError()
-	itr.assertIsValid()
-	return cp(itr.source.Value().Data())
-}
-
-// Implements Iterator.
-func (itr *rocksDBIterator) Next() {
+func (itr rocksDBIterator) Next() {
 	itr.assertNoError()
 	itr.assertIsValid()
 	if itr.isReverse {
@@ -406,13 +384,30 @@ func (itr *rocksDBIterator) Next() {
 	}
 }
 
-// Implements Iterator.
-func (itr *rocksDBIterator) Close() {
-	itr.source.Close()
-	//itr.source.Release()
+func (itr rocksDBIterator) Key() []byte {
+	itr.assertNoError()
+	itr.assertIsValid()
+	//return itr.source.Key().Data()
+	return cp(itr.source.Key().Data())
 }
 
-func (itr *rocksDBIterator) assertNoError() {
+func (itr rocksDBIterator) Value() []byte {
+	itr.assertNoError()
+	itr.assertIsValid()
+	//return itr.source.Value().Data()
+	return cp(itr.source.Value().Data())
+
+}
+
+func (itr rocksDBIterator) Close() {
+	itr.source.Close()
+}
+
+func (itr rocksDBIterator) Seek(key []byte) {
+	itr.source.Seek(key)
+}
+
+func (itr rocksDBIterator) assertNoError() {
 	if err := itr.source.Err(); err != nil {
 		panic(err)
 	}
@@ -420,6 +415,6 @@ func (itr *rocksDBIterator) assertNoError() {
 
 func (itr rocksDBIterator) assertIsValid() {
 	if !itr.Valid() {
-		panic("rocksDBIterator is invalid")
+		panic("fail, rocksDBIterator assertIsValid")
 	}
 }
