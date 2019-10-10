@@ -245,6 +245,12 @@ max_num_inbound_peers = {{ .P2P.MaxNumInboundPeers }}
 # Maximum number of outbound peers to connect to, excluding persistent peers
 max_num_outbound_peers = {{ .P2P.MaxNumOutboundPeers }}
 
+# Wildcard node id list for limit of max_num_inbound_peers, max_num_outbound_peers
+wildcard_peer_ids = "{{ .P2P.WildCardPeerIDs }}"
+
+# Maximum dial period seconds when exponential back off for persistent peers, 0 == default as exponential back off
+maximum_dial_period = {{ .P2P.MaximumDialPeriod }}
+
 # Time to wait before flushing messages out on the connection
 flush_throttle_timeout = "{{ .P2P.FlushThrottleTimeout }}"
 

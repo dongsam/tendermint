@@ -463,6 +463,10 @@ func (r *PEXReactor) ensurePeers() {
 		if r.Switch.IsDialingOrExistingAddress(try) {
 			continue
 		}
+		if r.Switch.IsWildCardPeer(try.ID){
+			numToDial += 1
+			maxAttempts += 1
+		}
 		// TODO: consider moving some checks from toDial into here
 		// so we don't even consider dialing peers that we want to wait
 		// before dialling again, or have dialed too many times already

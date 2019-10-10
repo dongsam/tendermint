@@ -189,7 +189,6 @@ func MakeSwitch(
 	if err := t.Listen(*addr); err != nil {
 		panic(err)
 	}
-
 	// TODO: let the config be passed in?
 	sw := initSwitch(i, NewSwitch(cfg, t, opts...))
 	sw.SetLogger(log.TestingLogger().With("switch", i))

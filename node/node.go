@@ -663,6 +663,11 @@ func NewNode(config *cfg.Config,
 		return nil, errors.Wrap(err, "could not add peers from persistent_peers field")
 	}
 
+	err = sw.AddWildCardPeerIDs(splitAndTrimEmpty(config.P2P.WildCardPeerIDs, ",", " "))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not add peer ids from wildcard_peer_ids field")
+	}
+
 	addrBook, err := createAddrBookAndSetOnSwitch(config, sw, p2pLogger, nodeKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create addrbook")

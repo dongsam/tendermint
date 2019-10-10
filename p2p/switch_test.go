@@ -512,10 +512,22 @@ func TestSwitchFullConnectivity(t *testing.T) {
 
 func TestSwitchAcceptRoutine(t *testing.T) {
 	cfg.MaxNumInboundPeers = 5
+	wildCardNodeCnt := 2
+	remoteWildCardPeers := make([]*remotePeer, 0)
+	var wildCardNodeIds []string
+
+	for i := 0; i < wildCardNodeCnt; i++ {
+		rwp := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
+		remoteWildCardPeers = append(remoteWildCardPeers, rwp)
+		rwp.Start()
+		wildCardNodeIds = append(wildCardNodeIds, string(rwp.ID()))
+	}
 
 	// make switch
 	sw := MakeSwitch(cfg, 1, "testing", "123.123.123", initSwitchFunc)
+	sw.AddWildCardPeerIDs(wildCardNodeIds)
 	err := sw.Start()
+
 	require.NoError(t, err)
 	defer sw.Stop()
 
@@ -556,9 +568,30 @@ func TestSwitchAcceptRoutine(t *testing.T) {
 	assert.Equal(t, cfg.MaxNumInboundPeers, sw.Peers().Size())
 	rp.Stop()
 
+	for _, rwp := range remoteWildCardPeers {
+		c, err := rwp.Dial(sw.NetAddress())
+		require.NoError(t, err)
+		// spawn a reading routine to prevent connection from closing
+		go func(c net.Conn) {
+			for {
+				one := make([]byte, 1)
+				_, err := c.Read(one)
+				if err != nil {
+					return
+				}
+			}
+		}(c)
+	}
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, cfg.MaxNumInboundPeers+wildCardNodeCnt, sw.Peers().Size())
+
 	// stop remote peers
 	for _, rp := range remotePeers {
 		rp.Stop()
+	}
+	// stop remote wildcard peers
+	for _, rwp := range remoteWildCardPeers {
+		rwp.Stop()
 	}
 }
 

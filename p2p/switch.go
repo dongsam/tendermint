@@ -79,6 +79,7 @@ type Switch struct {
 	addrBook     AddrBook
 	// peers addresses with whom we'll maintain constant connection
 	persistentPeersAddrs []*NetAddress
+	wildCardPeerIDs      map[ID]struct{}
 
 	transport Transport
 
@@ -117,6 +118,7 @@ func NewSwitch(
 		transport:            transport,
 		filterTimeout:        defaultFilterTimeout,
 		persistentPeersAddrs: make([]*NetAddress, 0),
+		wildCardPeerIDs:      make(map[ID]struct{}),
 	}
 
 	// Ensure we have a completely undeterministic PRNG.
@@ -283,14 +285,21 @@ func (sw *Switch) Broadcast(chID byte, msgBytes []byte) chan bool {
 func (sw *Switch) NumPeers() (outbound, inbound, dialing int) {
 	peers := sw.peers.List()
 	for _, peer := range peers {
-		if peer.IsOutbound() {
-			outbound++
-		} else {
-			inbound++
+		if !sw.IsWildCardPeer(peer.ID()){
+			if peer.IsOutbound() {
+				outbound++
+			} else {
+				inbound++
+			}
 		}
 	}
 	dialing = sw.dialing.Size()
 	return
+}
+
+func (sw *Switch) IsWildCardPeer(id ID) bool {
+	_, ok := sw.wildCardPeerIDs[id]
+	return ok
 }
 
 // MaxNumOutboundPeers returns a maximum number of outbound peers.
@@ -558,6 +567,18 @@ func (sw *Switch) AddPersistentPeers(addrs []string) error {
 	return nil
 }
 
+func (sw *Switch) AddWildCardPeerIDs(ids []string) error {
+	sw.Logger.Info("Adding wildcard peer ids", "ids", ids)
+	for _, id := range ids {
+		err := validateID(ID(id))
+		if err != nil {
+			return err
+		}
+		sw.wildCardPeerIDs[ID(id)] = struct{}{}
+	}
+	return nil
+}
+
 func (sw *Switch) isPeerPersistentFn() func(*NetAddress) bool {
 	return func(na *NetAddress) bool {
 		for _, pa := range sw.persistentPeersAddrs {
@@ -625,19 +646,22 @@ func (sw *Switch) acceptRoutine() {
 			break
 		}
 
-		// Ignore connection if we already have enough peers.
-		_, in, _ := sw.NumPeers()
-		if in >= sw.config.MaxNumInboundPeers {
-			sw.Logger.Info(
-				"Ignoring inbound connection: already have enough inbound peers",
-				"address", p.SocketAddr(),
-				"have", in,
-				"max", sw.config.MaxNumInboundPeers,
-			)
+		if !sw.IsWildCardPeer(p.NodeInfo().ID()){
+			// Ignore connection if we already have enough peers, except wildcard peer
+			_, in, _ := sw.NumPeers()
+			if in >= sw.config.MaxNumInboundPeers {
+				sw.Logger.Info(
+					"Ignoring inbound connection: already have enough inbound peers",
+					"address", p.SocketAddr(),
+					"have", in,
+					"max", sw.config.MaxNumInboundPeers,
+				)
 
-			sw.transport.Cleanup(p)
+				sw.transport.Cleanup(p)
 
-			continue
+				continue
+			}
+
 		}
 
 		if err := sw.addPeer(p); err != nil {
