@@ -100,6 +100,10 @@ func (r *PEXReactor) minReceiveRequestInterval() time.Duration {
 	return r.ensurePeersPeriod / 3
 }
 
+func (r *PEXReactor) isBackoffExcepted(addr *p2p.NetAddress) bool {
+	return r.config.MaximumDialPeriod != 0 && r.Switch.IsPeerPersistent(addr)
+}
+
 // PEXReactorConfig holds reactor specific configuration data.
 type PEXReactorConfig struct {
 	// Seed/Crawler mode
@@ -109,6 +113,9 @@ type PEXReactorConfig struct {
 	// least as long as we expect it to take for a peer to become good before
 	// disconnecting.
 	SeedDisconnectWaitPeriod time.Duration
+
+	// Maximum dial period seconds when exponential backoff for persistent peers, when value exist
+	MaximumDialPeriod time.Duration
 
 	// Seeds is a list of addresses reactor may use
 	// if it can't connect to peers in the addrbook.
@@ -521,7 +528,7 @@ func (r *PEXReactor) dialAttemptsInfo(addr *p2p.NetAddress) (attempts int, lastD
 func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) error {
 	attempts, lastDialed := r.dialAttemptsInfo(addr)
 
-	if attempts > maxAttemptsToDial {
+	if attempts > maxAttemptsToDial && r.isBackoffExcepted(addr) {
 		// TODO(melekes): have a blacklist in the addrbook with peers whom we've
 		// failed to connect to. Then we can clean up attemptsToDial, which acts as
 		// a blacklist currently.
@@ -533,7 +540,18 @@ func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) error {
 	// exponential backoff if it's not our first attempt to dial given address
 	if attempts > 0 {
 		jitterSeconds := time.Duration(cmn.RandFloat64() * float64(time.Second)) // 1s == (1e9 ns)
-		backoffDuration := jitterSeconds + ((1 << uint(attempts)) * time.Second)
+		var backoffDuration time.Duration
+		backoffDuration = jitterSeconds + ((1 << uint(attempts)) * time.Second)
+
+		if backoffDuration > r.config.MaximumDialPeriod && r.isBackoffExcepted(addr){
+			r.Logger.Error("backoffDuration, r.config.MaximumDialPeriod", backoffDuration, r.config.MaximumDialPeriod)
+			backoffDuration = r.config.MaximumDialPeriod
+		}
+		//if r.config.MaximumDialPeriod != 0 {
+		//	backoffDuration = r.config.MaximumDialPeriod
+		//} else {
+		//	backoffDuration = jitterSeconds + ((1 << uint(attempts)) * time.Second)
+		//}
 		sinceLastDialed := time.Since(lastDialed)
 		if sinceLastDialed < backoffDuration {
 			return errTooEarlyToDial{backoffDuration, lastDialed}

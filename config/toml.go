@@ -249,7 +249,7 @@ max_num_outbound_peers = {{ .P2P.MaxNumOutboundPeers }}
 wildcard_peer_ids = "{{ .P2P.WildCardPeerIDs }}"
 
 # Maximum dial period seconds when exponential back off for persistent peers, 0 == default as exponential back off
-maximum_dial_period = {{ .P2P.MaximumDialPeriod }}
+maximum_dial_period = "{{ .P2P.MaximumDialPeriod }}"
 
 # Time to wait before flushing messages out on the connection
 flush_throttle_timeout = "{{ .P2P.FlushThrottleTimeout }}"

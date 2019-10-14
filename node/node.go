@@ -528,6 +528,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 			// from the live network.
 			// https://github.com/tendermint/tendermint/issues/3523
 			SeedDisconnectWaitPeriod: 28 * time.Hour,
+			MaximumDialPeriod: config.P2P.MaximumDialPeriod,
 		})
 	pexReactor.SetLogger(logger.With("module", "pex"))
 	sw.AddReactor("PEX", pexReactor)

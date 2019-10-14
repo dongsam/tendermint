@@ -506,8 +506,8 @@ type P2PConfig struct {
 	// Wildcard node id list for limit of MaxNumInboundPeers, MaxNumOutboundPeers
 	WildCardPeerIDs string `mapstructure:"wildcard_peer_ids"`
 
-	// Maximum dial period seconds when exponential backoff for persistent peers, 0 == default as exponential back off
-	MaximumDialPeriod int `mapstructure:"maximum_dial_period"`
+	// Maximum dial period seconds when exponential backoff for persistent peers, when value exist
+	MaximumDialPeriod time.Duration `mapstructure:"maximum_dial_period"`
 
 	// Time to wait before flushing messages out on the connection
 	FlushThrottleTimeout time.Duration `mapstructure:"flush_throttle_timeout"`
@@ -559,8 +559,7 @@ func DefaultP2PConfig() *P2PConfig {
 		AddrBookStrict:          true,
 		MaxNumInboundPeers:      40,
 		MaxNumOutboundPeers:     10,
-		// WildCardPeerIDs:"",
-		// MaximumDialPeriod:0,
+		MaximumDialPeriod:       30 * time.Second,
 		FlushThrottleTimeout:    100 * time.Millisecond,
 		MaxPacketMsgPayloadSize: 1024,    // 1 kB
 		SendRate:                5120000, // 5 mB/s

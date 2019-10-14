@@ -590,6 +590,15 @@ func (sw *Switch) isPeerPersistentFn() func(*NetAddress) bool {
 	}
 }
 
+func (sw *Switch) IsPeerPersistent(na *NetAddress) bool {
+	for _, pa := range sw.persistentPeersAddrs {
+		if pa.Equals(na) {
+			return true
+		}
+	}
+	return false
+}
+
 func (sw *Switch) acceptRoutine() {
 	for {
 		p, err := sw.transport.Accept(peerConfig{
