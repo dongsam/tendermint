@@ -528,7 +528,7 @@ func (r *PEXReactor) dialAttemptsInfo(addr *p2p.NetAddress) (attempts int, lastD
 func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) error {
 	attempts, lastDialed := r.dialAttemptsInfo(addr)
 
-	if attempts > maxAttemptsToDial && r.isBackoffExcepted(addr) {
+	if attempts > maxAttemptsToDial && !r.isBackoffExcepted(addr) {
 		// TODO(melekes): have a blacklist in the addrbook with peers whom we've
 		// failed to connect to. Then we can clean up attemptsToDial, which acts as
 		// a blacklist currently.
@@ -544,14 +544,8 @@ func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) error {
 		backoffDuration = jitterSeconds + ((1 << uint(attempts)) * time.Second)
 
 		if backoffDuration > r.config.MaximumDialPeriod && r.isBackoffExcepted(addr){
-			r.Logger.Error("backoffDuration, r.config.MaximumDialPeriod", backoffDuration, r.config.MaximumDialPeriod)
 			backoffDuration = r.config.MaximumDialPeriod
 		}
-		//if r.config.MaximumDialPeriod != 0 {
-		//	backoffDuration = r.config.MaximumDialPeriod
-		//} else {
-		//	backoffDuration = jitterSeconds + ((1 << uint(attempts)) * time.Second)
-		//}
 		sinceLastDialed := time.Since(lastDialed)
 		if sinceLastDialed < backoffDuration {
 			return errTooEarlyToDial{backoffDuration, lastDialed}

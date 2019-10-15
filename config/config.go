@@ -559,7 +559,7 @@ func DefaultP2PConfig() *P2PConfig {
 		AddrBookStrict:          true,
 		MaxNumInboundPeers:      40,
 		MaxNumOutboundPeers:     10,
-		MaximumDialPeriod:       30 * time.Second,
+		MaximumDialPeriod:       60 * time.Second,
 		FlushThrottleTimeout:    100 * time.Millisecond,
 		MaxPacketMsgPayloadSize: 1024,    // 1 kB
 		SendRate:                5120000, // 5 mB/s
