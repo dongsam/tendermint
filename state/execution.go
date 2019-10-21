@@ -217,6 +217,9 @@ func (blockExec *BlockExecutor) Commit(
 		"height", block.Height,
 		"txs", block.NumTxs,
 		"appHash", fmt.Sprintf("%X", res.Data),
+		"state.Validators.Validators", state.Validators.Validators,
+		"state.LastValidators.Validators", state.LastValidators.Validators,
+		"state.NextValidators.Validators", state.NextValidators.Validators,
 	)
 
 	// Update mempool.
