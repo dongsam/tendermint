@@ -543,7 +543,7 @@ func (vals *ValidatorSet) updateWithChangeSet(changes []*Validator, allowDeletes
 	if err := verifyRemovals(deletes, vals); err != nil {
 		return err
 	}
-
+	// TODO: key rotation, case
 	// Verify that applying the 'updates' against 'vals' will not result in error.
 	updatedTotalVotingPower, numNewValidators, err := verifyUpdates(updates, vals)
 	if err != nil {
