@@ -82,6 +82,29 @@ func TestSignerPing(t *testing.T) {
 	}
 }
 
+func TestSignerClientEmpty(t *testing.T) {
+	for _, tc := range getSignerTestCases(t) {
+		defer tc.signerServer.Stop()
+		defer tc.signerClient.Close()
+		assert.False(t, tc.signerClient.Empty())
+		assert.False(t, tc.mockPV.Empty())
+		pv := types.PrivValidator(tc.signerClient)
+		mpv := types.PrivValidator(tc.mockPV)
+		assert.False(t, pv.Empty())
+		assert.False(t, mpv.Empty())
+	}
+
+	var emptySC *SignerClient
+	assert.True(t, emptySC.Empty())
+	emptyPV := types.PrivValidator(emptySC)
+	assert.True(t, emptyPV.Empty())
+
+	var emptyMP types.MockPV
+	assert.True(t, emptyMP.Empty())
+	emptyPV = types.PrivValidator(emptyMP)
+	assert.True(t, emptyPV.Empty())
+}
+
 func TestSignerGetPubKey(t *testing.T) {
 	for _, tc := range getSignerTestCases(t) {
 		tc := tc

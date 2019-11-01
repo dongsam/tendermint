@@ -4,12 +4,12 @@ export PATH="$GOBIN:$PATH"
 export TMHOME=$HOME/.tendermint_persist
 
 rm -rf "$TMHOME"
-tendermint init
+tendermint init validator
 
 # use a unix socket so we can remove it
 RPC_ADDR="$(pwd)/rpc.sock"
 
-TM_CMD="tendermint node --log_level=debug --rpc.laddr=unix://$RPC_ADDR" # &> tendermint_${name}.log"
+TM_CMD="tendermint node --mode validator --log_level=debug --rpc.laddr=unix://$RPC_ADDR" # &> tendermint_${name}.log"
 DUMMY_CMD="abci-cli kvstore --persist $TMHOME/kvstore" # &> kvstore_${name}.log"
 
 
