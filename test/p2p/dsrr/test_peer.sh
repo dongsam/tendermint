@@ -40,7 +40,7 @@ set +e
 	# bring it back online with double_sign_check_height 10
 	# wait node is not run by double sign risk reduction
 	DSCH=10
-	bash test/p2p/peer.sh $DOCKER_IMAGE $NETWORK_NAME $IPV $ID $PROXY_APP "--p2p.persistent_peers $PERSISTENT_PEERS --p2p.pex --rpc.unsafe --consensus.double_sign_check_height $DSCH"
+	bash test/p2p/peer.sh $DOCKER_IMAGE $NETWORK_NAME $IPV $ID $PROXY_APP "--p2p.persistent_peers $PERSISTENT_PEERS --p2p.pex --rpc.unsafe --mode validator --consensus.double_sign_check_height $DSCH"
 	bash test/p2p/client.sh $DOCKER_IMAGE $NETWORK_NAME $IPV fs_$ID "test/p2p/dsrr/check_peer.sh $IPV $ID $ASSERT_NODE_DOWN"
 
 
@@ -49,7 +49,7 @@ set +e
 	# bring it back online with double_sign_check_height 1
 	# pass double sign risk reduction, wait for it to sync and check the app hash
 	DSCH=1
-	bash test/p2p/peer.sh $DOCKER_IMAGE $NETWORK_NAME $IPV $ID $PROXY_APP "--p2p.persistent_peers $PERSISTENT_PEERS --p2p.pex --rpc.unsafe --consensus.double_sign_check_height $DSCH"
+	bash test/p2p/peer.sh $DOCKER_IMAGE $NETWORK_NAME $IPV $ID $PROXY_APP "--p2p.persistent_peers $PERSISTENT_PEERS --p2p.pex --rpc.unsafe --mode validator --consensus.double_sign_check_height $DSCH"
 	bash test/p2p/client.sh $DOCKER_IMAGE $NETWORK_NAME $IPV fs_$ID "test/p2p/dsrr/check_peer.sh $IPV $ID $ASSERT_NODE_UP"
 
 	docker stop local_testnet_$ID
@@ -57,7 +57,7 @@ set +e
 	DSCH=0
 	# bring it back online with double_sign_check_height 0
 	# double sign risk reduction is not activated, wait for it to sync and check the app hash
-	bash test/p2p/peer.sh $DOCKER_IMAGE $NETWORK_NAME $IPV $ID $PROXY_APP "--p2p.persistent_peers $PERSISTENT_PEERS --p2p.pex --rpc.unsafe --consensus.double_sign_check_height $DSCH"
+	bash test/p2p/peer.sh $DOCKER_IMAGE $NETWORK_NAME $IPV $ID $PROXY_APP "--p2p.persistent_peers $PERSISTENT_PEERS --p2p.pex --rpc.unsafe --mode validator --consensus.double_sign_check_height $DSCH"
 	bash test/p2p/client.sh $DOCKER_IMAGE $NETWORK_NAME $IPV fs_$ID "test/p2p/dsrr/check_peer.sh $IPV $ID $ASSERT_NODE_UP"
 
 	echo ""

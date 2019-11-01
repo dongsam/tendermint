@@ -4,14 +4,14 @@
 export TMHOME=$HOME/.tendermint_persist
 
 rm -rf $TMHOME
-tendermint init
+tendermint init validator
 
 function start_procs(){
     name=$1
     echo "Starting persistent kvstore and tendermint"
     abci-cli kvstore --persist $TMHOME/kvstore &> "kvstore_${name}.log" &
     PID_DUMMY=$!
-    tendermint node --consensus.double_sign_check_height 0 &> tendermint_${name}.log &
+    tendermint node --mode validator --consensus.double_sign_check_height 0 &> tendermint_${name}.log &
     PID_TENDERMINT=$!
     sleep 5
 }

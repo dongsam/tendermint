@@ -24,6 +24,8 @@ func AddNodeFlags(cmd *cobra.Command) {
 	// bind flags
 	cmd.Flags().String("moniker", config.Moniker, "Node Name")
 
+	cmd.Flags().String("mode", config.Mode, "Mode of Node (fullnode | validator | seednode )")
+
 	// priv val flags
 	cmd.Flags().String(
 		"priv_validator_laddr",

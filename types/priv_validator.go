@@ -17,6 +17,7 @@ type PrivValidator interface {
 
 	SignVote(chainID string, vote *tmproto.Vote) error
 	SignProposal(chainID string, proposal *tmproto.Proposal) error
+	Empty() bool
 }
 
 type PrivValidatorsByAddress []PrivValidator
@@ -126,6 +127,14 @@ func (pv MockPV) DisableChecks() {
 
 type ErroringMockPV struct {
 	MockPV
+}
+func (pv MockPV) Empty() bool {
+	if pv.PrivKey == nil {
+		return true
+	} else {
+		return false
+	}
+	//return pv == (MockPV)(nil)
 }
 
 var ErroringMockPVErr = errors.New("erroringMockPV always returns an error")

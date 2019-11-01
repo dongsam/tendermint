@@ -40,6 +40,23 @@ func TestGenLoadValidator(t *testing.T) {
 	assert.Equal(height, privVal.LastSignState.Height, "expected privval.LastHeight to have been saved")
 }
 
+func TestFilePV_Empty(t *testing.T) {
+	tempKeyFile, err := ioutil.TempFile("", "priv_validator_key_")
+	require.Nil(t, err)
+	tempStateFile, err := ioutil.TempFile("", "priv_validator_state_")
+	require.Nil(t, err)
+
+	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	assert.False(t, privVal.Empty())
+	pv := types.PrivValidator(privVal)
+	assert.False(t, pv.Empty())
+
+	var emptyFilePV *FilePV
+	assert.True(t, emptyFilePV.Empty())
+	emptyPV := types.PrivValidator(emptyFilePV)
+	assert.True(t, emptyPV.Empty())
+}
+
 func TestResetValidator(t *testing.T) {
 	tempKeyFile, err := ioutil.TempFile("", "priv_validator_key_")
 	require.Nil(t, err)

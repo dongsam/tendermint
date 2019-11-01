@@ -368,7 +368,9 @@ func (cs *State) OnStart() error {
 	}
 
 	// Double Signing Risk Reduction
-	if cs.privValidator != nil && cs.privValidatorPubKey != nil && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+	if cs.privValidator != nil && !cs.privValidator.Empty() && cs.privValidatorPubKey != nil &&
+		cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+
 		valAddr := cs.privValidatorPubKey.Address()
 		doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
 		if doubleSignCheckHeight > cs.Height {
@@ -999,8 +1001,9 @@ func (cs *State) enterPropose(height int64, round int32) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
+	// TODO: ADR tendermint mode, skip if full node mode, not validator mode
 	// Nothing more to do if we're not a validator
-	if cs.privValidator == nil {
+	if cs.privValidator == nil || cs.privValidator.Empty() { // test fail, nil pointer
 		logger.Debug("This node is not a validator")
 		return
 	}
@@ -1104,7 +1107,7 @@ func (cs *State) isProposalComplete() bool {
 // NOTE: keep it side-effect free for clarity.
 // CONTRACT: cs.privValidator is not nil.
 func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.PartSet) {
-	if cs.privValidator == nil {
+	if cs.privValidator == nil || cs.privValidator.Empty() {
 		panic("entered createProposalBlock with privValidator being nil")
 	}
 
@@ -1122,7 +1125,7 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 		return
 	}
 
-	if cs.privValidatorPubKey == nil {
+	if cs.privValidator == nil || cs.privValidator.Empty() || cs.privValidatorPubKey == nil { // TODO: ADR need to check
 		// If this node is a validator & proposer in the current round, it will
 		// miss the opportunity to create a block.
 		cs.Logger.Error(fmt.Sprintf("enterPropose: %v", errPubKeyIsNotSet))
@@ -1640,7 +1643,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 				commitSize, valSetLen, block.Height, block.LastCommit.Signatures, cs.LastValidators.Validators))
 		}
 
-		if cs.privValidator != nil {
+		if cs.privValidator != nil && !cs.privValidator.Empty() {
 			if cs.privValidatorPubKey == nil {
 				// Metrics won't be updated, but it's not critical.
 				cs.Logger.Error(fmt.Sprintf("recordMetrics: %v", errPubKeyIsNotSet))
@@ -1906,6 +1909,12 @@ func (cs *State) addVote(
 	}
 
 	height := cs.Height
+	//fmt.Println("receiveRoutine-addVote", vote.Height, vote.Round, cs.Height, cs.Round, vote)
+	//voteSet := cs.Votes.GetVoteSet(vote.Round, vote.Type)
+	//alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+	//if alreadyVote != nil {
+	//	fmt.Println("@@@@@@@@ alreadyVote", alreadyVote)
+	//}
 	added, err = cs.Votes.AddVote(vote, peerID)
 	if !added {
 		// Either duplicate, or error upon cs.Votes.AddByIndex()
@@ -2042,6 +2051,7 @@ func (cs *State) signVote(
 		Type:             msgType,
 		BlockID:          types.BlockID{Hash: hash, PartSetHeader: header},
 	}
+	// sign executed here
 	v := vote.ToProto()
 	err := cs.privValidator.SignVote(cs.state.ChainID, v)
 	vote.Signature = v.Signature
@@ -2070,7 +2080,7 @@ func (cs *State) voteTime() time.Time {
 
 // sign the vote and publish on internalMsgQueue
 func (cs *State) signAddVote(msgType tmproto.SignedMsgType, hash []byte, header types.PartSetHeader) *types.Vote {
-	if cs.privValidator == nil { // the node does not have a key
+	if cs.privValidator == nil || cs.privValidator.Empty() { // the node does not have a key
 		return nil
 	}
 
@@ -2102,7 +2112,7 @@ func (cs *State) signAddVote(msgType tmproto.SignedMsgType, hash []byte, header 
 // memoizes it. This func returns an error if the private validator is not
 // responding or responds with an error.
 func (cs *State) updatePrivValidatorPubKey() error {
-	if cs.privValidator == nil {
+	if cs.privValidator == nil || cs.privValidator.Empty() {
 		return nil
 	}
 

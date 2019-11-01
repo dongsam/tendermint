@@ -128,3 +128,7 @@ func (sc *SignerClient) SignProposal(chainID string, proposal *tmproto.Proposal)
 
 	return nil
 }
+
+func (sc *SignerClient) Empty() bool {
+	return sc == (*SignerClient)(nil)
+}
