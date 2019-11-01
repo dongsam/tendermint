@@ -20,6 +20,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 
 	// node flags
 	cmd.Flags().Bool("fast_sync", config.FastSyncMode, "Fast blockchain syncing")
+	cmd.Flags().Int64("double_sign_check_height", config.Consensus.DoubleSignCheckHeight, "double sign check height")
 
 	// abci flags
 	cmd.Flags().String("proxy_app", config.ProxyApp, "Proxy app address, or one of: 'kvstore', 'persistent_kvstore', 'counter', 'counter_serial' or 'noop' for local testing.")

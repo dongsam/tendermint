@@ -31,6 +31,7 @@ var (
 	ErrInvalidProposalPOLRound  = errors.New("Error invalid proposal POL round")
 	ErrAddingVote               = errors.New("Error adding vote")
 	ErrVoteHeightMismatch       = errors.New("Error vote height mismatch")
+	ErrDoubleSignProtection     = errors.New("Double sign detected or restart after DoubleSignCheckHeight")
 )
 
 //-----------------------------------------------------------------------------
@@ -327,6 +328,22 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 			cs.Logger.Error("Error on catchup replay. Proceeding to start ConsensusState anyway", "err", err.Error())
 			// NOTE: if we ever do return an error here,
 			// make sure to stop the timeoutTicker
+		}
+	}
+
+	if cs.Height > int64(cs.config.DoubleSignCheckHeight) {
+		for i := int64(1); i<=cs.config.DoubleSignCheckHeight; i++ {
+			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height-int64(i))
+			fmt.Println(lastCommit, cs.LastCommit.String(), cs.config.DoubleSignCheckHeight)
+			if lastCommit != nil {
+				for _, v := range lastCommit.Precommits {
+					if v != nil && !v.BlockID.IsZero() && bytes.Equal(v.ValidatorAddress, cs.privValidator.GetPubKey().Address()) {
+						fmt.Println("[double sign protection6] already running", v, v.ValidatorAddress, cs.privValidator.GetPubKey().Address(), cs.config.DoubleSignCheckHeight)
+						//panic(fmt.Sprintf("[double sign protection6] restart after %d", cs.config.DoubleSignCheckHeight))
+						return ErrDoubleSignProtection
+					}
+				}
+			}
 		}
 	}
 
