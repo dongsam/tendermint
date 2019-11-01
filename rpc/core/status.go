@@ -38,10 +38,18 @@ func Status(ctx *rpctypes.Context) (*ctypes.ResultStatus, error) {
 	latestBlockTime := time.Unix(0, latestBlockTimeNano)
 
 	var votingPower int64
+	// TODO: ADR Tendermint Mode
 	if val := validatorAtHeight(latestHeight); val != nil {
 		votingPower = val.VotingPower
 	}
-
+	validatorInfo := ctypes.ValidatorInfo{}
+	if pubKey != nil {
+		validatorInfo = ctypes.ValidatorInfo{
+			Address:     pubKey.Address(),
+			PubKey:      pubKey,
+			VotingPower: votingPower,
+		}
+	}
 	result := &ctypes.ResultStatus{
 		NodeInfo: p2pTransport.NodeInfo().(p2p.DefaultNodeInfo),
 		SyncInfo: ctypes.SyncInfo{
@@ -51,17 +59,16 @@ func Status(ctx *rpctypes.Context) (*ctypes.ResultStatus, error) {
 			LatestBlockTime:   latestBlockTime,
 			CatchingUp:        consensusReactor.FastSync(),
 		},
-		ValidatorInfo: ctypes.ValidatorInfo{
-			Address:     pubKey.Address(),
-			PubKey:      pubKey,
-			VotingPower: votingPower,
-		},
+		ValidatorInfo: validatorInfo,
 	}
 
 	return result, nil
 }
 
 func validatorAtHeight(h int64) *types.Validator {
+	if pubKey == nil {
+		return nil
+	}
 	privValAddress := pubKey.Address()
 
 	// If we're still at height h, search in the current validator set.

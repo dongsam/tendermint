@@ -20,6 +20,11 @@ const (
 	LogFormatPlain = "plain"
 	// LogFormatJSON is a format for json output
 	LogFormatJSON = "json"
+
+	ModeFullNode  = "fullnode"
+	ModeValidator = "validator"
+	ModeSeedNode = "seednode"
+	//ModeValidatorWithInit = "validatorWithInit"
 )
 
 // NOTE: Most of the structs & relevant comments + the
@@ -36,6 +41,7 @@ var (
 	defaultConfigFileName  = "config.toml"
 	defaultGenesisJSONName = "genesis.json"
 
+	defaultMode             = ModeFullNode
 	defaultPrivValKeyName   = "priv_validator_key.json"
 	defaultPrivValStateName = "priv_validator_state.json"
 
@@ -155,6 +161,18 @@ type BaseConfig struct { //nolint: maligned
 	// A custom human readable name for this node
 	Moniker string `mapstructure:"moniker"`
 
+	// Mode of Node: fullnode | validator (default: "fullnode")
+	// * fullnode (default)
+	//   - all reactors
+	//   - No priv_validator_key.json, priv_validator_state.json
+	// * validator
+	//   - all reactors
+	//   - with priv_validator_key.json, priv_validator_state.json
+	// * seed (TBD)
+	//   - only P2P, PEX Reactor
+	//   - No priv_validator_key.json, priv_validator_state.json
+	Mode string `mapstructure:"mode"`
+
 	// If this node is many blocks behind the tip of the chain, FastSync
 	// allows them to catchup quickly by downloading blocks in parallel
 	// and verifying their commits
@@ -217,6 +235,7 @@ func DefaultBaseConfig() BaseConfig {
 		PrivValidatorKey:   defaultPrivValKeyPath,
 		PrivValidatorState: defaultPrivValStatePath,
 		NodeKey:            defaultNodeKeyPath,
+		Mode:               defaultMode,
 		Moniker:            defaultMoniker,
 		ProxyApp:           "tcp://127.0.0.1:26658",
 		ABCI:               "socket",
@@ -234,6 +253,7 @@ func DefaultBaseConfig() BaseConfig {
 func TestBaseConfig() BaseConfig {
 	cfg := DefaultBaseConfig()
 	cfg.chainID = "tendermint_test"
+	cfg.Mode = ModeValidator
 	cfg.ProxyApp = "kvstore"
 	cfg.FastSyncMode = false
 	cfg.DBBackend = "memdb"
@@ -242,6 +262,10 @@ func TestBaseConfig() BaseConfig {
 
 func (cfg BaseConfig) ChainID() string {
 	return cfg.chainID
+}
+
+func (cfg BaseConfig) NodeMode() string {
+	return cfg.Mode
 }
 
 // GenesisFile returns the full path to the genesis.json file
@@ -283,12 +307,17 @@ func (cfg BaseConfig) ValidateBasic() error {
 	default:
 		return errors.New("unknown log_format (must be 'plain' or 'json')")
 	}
+	switch cfg.Mode {
+	case ModeFullNode, ModeValidator, ModeSeedNode:
+	default:
+		return errors.New("unknown mode (must be 'fullnode' or 'validator' or 'seednode)")
+	}
 	return nil
 }
 
 // DefaultLogLevel returns a default log level of "error"
 func DefaultLogLevel() string {
-	return "error"
+	return "info"
 }
 
 // DefaultPackageLogLevels returns a default log level setting so all packages
@@ -763,6 +792,8 @@ type ConsensusConfig struct {
 	// Reactor sleep duration parameters
 	PeerGossipSleepDuration     time.Duration `mapstructure:"peer_gossip_sleep_duration"`
 	PeerQueryMaj23SleepDuration time.Duration `mapstructure:"peer_query_maj23_sleep_duration"`
+
+	DoubleSignCheckHeight int64 `mapstructure:"double_sign_check_height"`
 }
 
 // DefaultConsensusConfig returns a default configuration for the consensus service
@@ -781,6 +812,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		CreateEmptyBlocksInterval:   0 * time.Second,
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
+		DoubleSignCheckHeight:       int64(3),
 	}
 }
 

@@ -286,6 +286,9 @@ func (pv *FilePV) String() string {
 	)
 }
 
+func (pv *FilePV) Empty() bool {
+	return pv == (*FilePV)(nil)
+}
 //------------------------------------------------------------------------------------
 
 // signVote checks if the vote is good to sign and sets the vote signature.

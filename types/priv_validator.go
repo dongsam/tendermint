@@ -17,6 +17,7 @@ type PrivValidator interface {
 
 	SignVote(chainID string, vote *Vote) error
 	SignProposal(chainID string, proposal *Proposal) error
+	Empty() bool
 }
 
 //----------------------------------------
@@ -105,6 +106,10 @@ func (pv *MockPV) String() string {
 func (pv *MockPV) DisableChecks() {
 	// Currently this does nothing,
 	// as MockPV has no safety checks at all.
+}
+
+func (pv *MockPV) Empty() bool {
+	return pv == (*MockPV)(nil)
 }
 
 type erroringMockPV struct {

@@ -99,6 +99,9 @@ func testnetFiles(cmd *cobra.Command, args []string) error {
 	}
 
 	config := cfg.DefaultConfig()
+	config.Mode = cfg.ModeValidator
+	args = append(args, cfg.ModeValidator)
+	//args_fullnode := []string{cfg.ModeFullNode}
 
 	// overwrite default config if set and valid
 	if configFile != "" {
@@ -131,8 +134,10 @@ func testnetFiles(cmd *cobra.Command, args []string) error {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
-
-		initFilesWithConfig(config)
+		if i+1 == nNonValidators {
+			config.Mode = cfg.ModeFullNode
+		}
+		initFilesWithConfig(config, args)
 
 		pvKeyFile := filepath.Join(nodeDir, config.BaseConfig.PrivValidatorKey)
 		pvStateFile := filepath.Join(nodeDir, config.BaseConfig.PrivValidatorState)
@@ -161,8 +166,10 @@ func testnetFiles(cmd *cobra.Command, args []string) error {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
-
-		initFilesWithConfig(config)
+		if i+1 == nNonValidators {
+			config.Mode = cfg.ModeFullNode
+		}
+		initFilesWithConfig(config, args)
 	}
 
 	// Generate genesis doc from generated validators
