@@ -82,3 +82,7 @@ func (sc *RetrySignerClient) SignProposal(chainID string, proposal *tmproto.Prop
 	}
 	return fmt.Errorf("exhausted all attempts to sign proposal: %w", err)
 }
+
+func (sc *RetrySignerClient) Empty() bool {
+	return sc == (*RetrySignerClient)(nil)
+}

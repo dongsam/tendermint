@@ -24,6 +24,8 @@ func AddNodeFlags(cmd *cobra.Command) {
 	// bind flags
 	cmd.Flags().String("moniker", config.Moniker, "Node Name")
 
+	cmd.Flags().String("mode", config.Mode, "Mode of Node (fullnode | validator | seedmode )")
+
 	// priv val flags
 	cmd.Flags().String(
 		"priv_validator_laddr",
@@ -37,6 +39,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"genesis_hash",
 		[]byte{},
 		"Optional SHA-256 hash of the genesis file")
+	cmd.Flags().Int64("double_sign_check_height", config.Consensus.DoubleSignCheckHeight, "double sign check height")
 
 	// abci flags
 	cmd.Flags().String(

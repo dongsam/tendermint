@@ -36,6 +36,7 @@ var (
 	ErrInvalidProposalSignature = errors.New("error invalid proposal signature")
 	ErrInvalidProposalPOLRound  = errors.New("error invalid proposal POL round")
 	ErrAddingVote               = errors.New("error adding vote")
+	ErrDoubleSignProtection     = errors.New("double sign detected or restarted in DoubleSignCheckHeight")
 )
 
 //-----------------------------------------------------------------------------
@@ -353,7 +354,41 @@ func (cs *State) OnStart() error {
 	if err := cs.timeoutTicker.Start(); err != nil {
 		return err
 	}
-
+	fmt.Println("[double sign 0]", cs.config.DoubleSignCheckHeight, cs.Height)
+	// Double Signing Risk Reduction Logic, triggered only when validator mode(existing privValidator) and DoubleSignCheckHeight set
+	if !(cs.privValidator == nil || cs.privValidator.Empty()) &&
+		//cs.config.DoubleSignCheckHeight != 0 && cs.Height > cs.config.DoubleSignCheckHeight {
+		cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+		// TODO: ADR remove debugging code
+		// TODO: ADD logging when cs.Height < cs.config.DoubleSignCheckHeight
+		fmt.Println("[double sign 1] logic in")
+		fmt.Println(cs.Height, cs.Round, cs.Step, cs.privValidator)
+		fmt.Println(cs.privValidator)
+		valAddr, err := cs.privValidator.GetPubKey()
+		if err != nil {
+			return err
+		}
+		var doubleSignCheckHeight int64
+		if cs.config.DoubleSignCheckHeight > cs.Height {
+			doubleSignCheckHeight = cs.Height
+		} else {
+			doubleSignCheckHeight = cs.config.DoubleSignCheckHeight
+		}
+		for i := int64(1); doubleSignCheckHeight > i; i++ {
+			fmt.Println("[double sign 2] logic in", i, doubleSignCheckHeight)
+			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height-i)
+			fmt.Println(lastCommit, cs.LastCommit.String(), doubleSignCheckHeight)
+			if lastCommit != nil {
+				for _, s := range lastCommit.Signatures {
+					fmt.Println(s.String(), s.Absent(), s.BlockIDFlag, s.ValidatorAddress, valAddr)
+					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr.Address()) {
+						fmt.Println("[double sign protection] already running", s, s.ValidatorAddress, valAddr, doubleSignCheckHeight, s.BlockIDFlag)
+						return ErrDoubleSignProtection
+					}
+				}
+			}
+		}
+	}
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 
@@ -754,6 +789,12 @@ func (cs *State) handleMsg(mi msgInfo) {
 			err = nil
 		}
 	case *VoteMessage:
+		//voteSet := cs.Votes.GetVoteSet(msg.Vote.Round, msg.Vote.Type)
+		//alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+		//if alreadyVote != nil {
+		//	fmt.Println("@@@@@@@@ alreadyVote22222 ", alreadyVote)
+		//}
+
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
 		added, err = cs.tryAddVote(msg.Vote, peerID)
@@ -967,8 +1008,10 @@ func (cs *State) enterPropose(height int64, round int32) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
+	// TODO: ADR tendermint mode, skip if full node mode, not validator mode
 	// Nothing more to do if we're not a validator
-	if cs.privValidator == nil {
+	//if cs.privValidator == nil {
+	if cs.privValidator == nil || cs.privValidator.Empty() { // test fail, nil pointer
 		logger.Debug("This node is not a validator")
 		return
 	}
@@ -1087,7 +1130,7 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 		return
 	}
 
-	if cs.privValidator == nil {
+	if cs.privValidator == nil || cs.privValidator.Empty() { // TODO: ADR need to check
 		panic("entered createProposalBlock with privValidator being nil")
 	}
 	pubKey, err := cs.privValidator.GetPubKey()
@@ -1607,7 +1650,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 				commitSize, valSetLen, block.Height, block.LastCommit.Signatures, cs.LastValidators.Validators))
 		}
 
-		if cs.privValidator != nil {
+		if cs.privValidator != nil && !cs.privValidator.Empty() {
 			pubkey, err := cs.privValidator.GetPubKey()
 			if err != nil {
 				// Metrics won't be updated, but it's not critical.
@@ -1875,6 +1918,12 @@ func (cs *State) addVote(
 	}
 
 	height := cs.Height
+	//fmt.Println("receiveRoutine-addVote", vote.Height, vote.Round, cs.Height, cs.Round, vote)
+	//voteSet := cs.Votes.GetVoteSet(vote.Round, vote.Type)
+	//alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+	//if alreadyVote != nil {
+	//	fmt.Println("@@@@@@@@ alreadyVote", alreadyVote)
+	//}
 	added, err = cs.Votes.AddVote(vote, peerID)
 	if !added {
 		// Either duplicate, or error upon cs.Votes.AddByIndex()
@@ -2012,6 +2061,7 @@ func (cs *State) signVote(
 		Type:             msgType,
 		BlockID:          types.BlockID{Hash: hash, PartSetHeader: header},
 	}
+	// sign executed here
 	v := vote.ToProto()
 	err = cs.privValidator.SignVote(cs.state.ChainID, v)
 	vote.Signature = v.Signature
@@ -2040,21 +2090,28 @@ func (cs *State) voteTime() time.Time {
 
 // sign the vote and publish on internalMsgQueue
 func (cs *State) signAddVote(msgType tmproto.SignedMsgType, hash []byte, header types.PartSetHeader) *types.Vote {
-	if cs.privValidator == nil { // the node does not have a key
+	if cs.privValidator == nil || cs.privValidator.Empty() {
 		return nil
 	}
-
 	pubKey, err := cs.privValidator.GetPubKey()
 	if err != nil {
 		// Vote won't be signed, but it's not critical.
 		cs.Logger.Error("Error on retrival of pubkey", "err", err)
 		return nil
 	}
-
-	// If the node not in the validator set, do nothing.
-	if !cs.Validators.HasAddress(pubKey.Address()) {
+	if !cs.Validators.HasAddress(pubKey.Address()) { // the node does not have a key
 		return nil
 	}
+
+	// TODO: ADR remove debugging log
+	//rvs := cs.Votes.GetRoundVoteSets()
+	//for i, v := range rvs {
+	//	fmt.Println("GetRoundVoteSets", i, v.Prevotes, v.Precommits)
+	//}
+	//ingCommit := cs.blockStore.LoadSeenCommit(cs.blockStore.Height())
+	//if ingCommit != nil {
+	//	fmt.Println("signAddVote", ingCommit.Height, ingCommit.Round, ingCommit.Signatures)
+	//}
 
 	// TODO: pass pubKey to signVote
 	vote, err := cs.signVote(msgType, hash, header)

@@ -7,7 +7,7 @@
 
 ## Context
 
-- Fullnode mode: fullnode mode does not have the capability to become a validator. 
+- Fullnode mode: fullnode mode does not have the capability to become a validator.
 - Validator mode : this mode is exactly same as existing state machine behavior. sync without voting on consensus, and participate consensus when fully synced
 - Seed mode : lightweight seed mode maintaining an address book, p2p like [TenderSeed](https://gitlab.com/polychainlabs/tenderseed)
 
@@ -24,6 +24,7 @@ We would like to suggest a simple Tendermint mode abstraction. These modes will 
           - evidence
           - blockchain
           - p2p/pex
+          - stateSync?
         - rpc (safe connections only)
         - *~~no privValidator(priv_validator_key.json, priv_validator_state.json)~~*
     - validator
@@ -33,7 +34,7 @@ We would like to suggest a simple Tendermint mode abstraction. These modes will 
           - consensus
           - evidence
           - blockchain
-          - p2p/pex
+          - p2p/pex
         - rpc (safe connections only)
         - with privValidator(priv_validator_key.json, priv_validator_state.json)
     - seed

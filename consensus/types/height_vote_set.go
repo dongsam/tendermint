@@ -121,6 +121,7 @@ func (hvs *HeightVoteSet) AddVote(vote *types.Vote, peerID p2p.ID) (added bool, 
 		return
 	}
 	voteSet := hvs.getVoteSet(vote.Round, vote.Type)
+	//fmt.Println("AddVote-voteSet", voteSet)
 	if voteSet == nil {
 		if rndz := hvs.peerCatchupRounds[peerID]; len(rndz) < 2 {
 			hvs.addRound(vote.Round)
@@ -176,6 +177,15 @@ func (hvs *HeightVoteSet) getVoteSet(round int32, voteType tmproto.SignedMsgType
 	default:
 		panic(fmt.Sprintf("Unexpected vote type %X", voteType))
 	}
+}
+
+// TODO: ADR remove codes for debugging
+func (hvs *HeightVoteSet) GetVoteSet(round int32, voteType tmproto.SignedMsgType) *types.VoteSet {
+	return hvs.getVoteSet(round, voteType)
+}
+
+func (hvs *HeightVoteSet) GetRoundVoteSets() map[int32]RoundVoteSet {
+	return hvs.roundVoteSets
 }
 
 // If a peer claims that it has 2/3 majority for given blockKey, call this.

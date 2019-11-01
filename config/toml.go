@@ -83,6 +83,18 @@ proxy_app = "{{ .BaseConfig.ProxyApp }}"
 # A custom human readable name for this node
 moniker = "{{ .BaseConfig.Moniker }}"
 
+# Mode of Node: fullnode | validator | seednode (default: "fullnode")
+# * fullnode (default)
+#   - all reactors
+#   - No priv_validator_key.json, priv_validator_state.json
+# * validator
+#   - all reactors
+#   - with priv_validator_key.json, priv_validator_state.json
+# * seednode
+#   - only P2P, PEX Reactor
+#   - No priv_validator_key.json, priv_validator_state.json
+mode = "{{ .BaseConfig.Mode }}"
+
 # If this node is many blocks behind the tip of the chain, FastSync
 # allows them to catchup quickly by downloading blocks in parallel
 # and verifying their commits
@@ -360,7 +372,7 @@ temp_dir = "{{ .StateSync.TempDir }}"
 # Fast Sync version to use:
 #   1) "v0" (default) - the legacy fast sync implementation
 #   2) "v1" - refactor of v0 version for better testability
-#   2) "v2" - complete redesign of v0, optimized for testability & readability 
+#   2) "v2" - complete redesign of v0, optimized for testability & readability
 version = "{{ .FastSync.Version }}"
 
 #######################################################
@@ -377,6 +389,7 @@ timeout_prevote_delta = "{{ .Consensus.TimeoutPrevoteDelta }}"
 timeout_precommit = "{{ .Consensus.TimeoutPrecommit }}"
 timeout_precommit_delta = "{{ .Consensus.TimeoutPrecommitDelta }}"
 timeout_commit = "{{ .Consensus.TimeoutCommit }}"
+double_sign_check_height = {{ .Consensus.DoubleSignCheckHeight }}
 
 # Make progress as soon as we have all the precommits (as if TimeoutCommit = 0)
 skip_timeout_commit = {{ .Consensus.SkipTimeoutCommit }}
