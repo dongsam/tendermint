@@ -207,6 +207,33 @@ func UnsafeDialPeers(ctx *rpctypes.Context, peers []string, persistent bool) (*c
 	return &ctypes.ResultDialPeers{Log: "Dialing peers in progress. See /net_info for details"}, nil
 }
 
+func UnsafeRemovePeers(ctx *rpctypes.Context) (*ctypes.ResultDialPeers, error) {
+	//if len(peers) == 0 {
+	//	return &ctypes.ResultDialPeers{}, errors.New("No peers provided")
+	//}
+	//peersRes := p2pPeers.Peers()
+	//peersRes.List()
+
+	logger.Info("remove peer", p2pPeers.Peers().List())
+	for _, i := range p2pPeers.Peers().List() {
+		logger.Info("remove peer try stop gracefully", i, i.String(), i.ID())
+		p2pPeers.StopPeerGracefully(i)
+		i.FlushStop()
+		i.CloseConn()
+		i.Stop()
+	}
+
+	//if persistent {
+	//	if err := p2pPeers.AddPersistentPeers(peers); err != nil {
+	//		return &ctypes.ResultDialPeers{}, err
+	//	}
+	//}
+	//if err := p2pPeers.DialPeersAsync(peers); err != nil {
+	//	return &ctypes.ResultDialPeers{}, err
+	//}
+	return &ctypes.ResultDialPeers{Log: "remove peers"}, nil
+}
+
 // Get genesis file.
 //
 // ```shell

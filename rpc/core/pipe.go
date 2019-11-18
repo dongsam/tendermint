@@ -47,6 +47,7 @@ type transport interface {
 type peers interface {
 	AddPersistentPeers([]string) error
 	DialPeersAsync([]string) error
+	StopPeerGracefully(peer p2p.Peer)
 	NumPeers() (outbound, inbound, dialig int)
 	Peers() p2p.IPeerSet
 }
