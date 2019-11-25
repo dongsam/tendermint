@@ -36,3 +36,6 @@ and that the node may not be able to keep the connection persistent.
 
 These are IDs of the peers that we do not add to the address book or gossip to
 other peers. They stay private to us.
+
+
+## TODO 
