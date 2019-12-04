@@ -520,7 +520,7 @@ func (r *PEXReactor) dialAttemptsInfo(addr *p2p.NetAddress) (attempts int, lastD
 
 func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) error {
 	attempts, lastDialed := r.dialAttemptsInfo(addr)
-	if !r.Switch.IsPeerPersistent(addr) && attempts > maxAttemptsToDial {
+	if attempts > maxAttemptsToDial && !r.Switch.IsPeerPersistent(addr) {
 		// TODO(melekes): have a blacklist in the addrbook with peers whom we've
 		// failed to connect to. Then we can clean up attemptsToDial, which acts as
 		// a blacklist currently.
@@ -533,8 +533,8 @@ func (r *PEXReactor) dialPeer(addr *p2p.NetAddress) error {
 	if attempts > 0 {
 		jitterSeconds := time.Duration(cmn.RandFloat64() * float64(time.Second)) // 1s == (1e9 ns)
 		backoffDuration := jitterSeconds + ((1 << uint(attempts)) * time.Second)
-		if r.Switch.IsPeerPersistent(addr) && r.config.PersistentPeersMaxDialPeriod > 0 &&
-			backoffDuration > r.config.PersistentPeersMaxDialPeriod {
+		if r.config.PersistentPeersMaxDialPeriod > 0 &&
+			backoffDuration > r.config.PersistentPeersMaxDialPeriod && r.Switch.IsPeerPersistent(addr) {
 			backoffDuration = r.config.PersistentPeersMaxDialPeriod
 		}
 		sinceLastDialed := time.Since(lastDialed)

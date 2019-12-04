@@ -115,6 +115,36 @@ func initSwitchFunc(i int, sw *Switch) *Switch {
 	return sw
 }
 
+func makeRemotePeers(peerNum int) []*remotePeer {
+	remotePeers := make([]*remotePeer, 0)
+	for i := 0; i < peerNum; i++ {
+		rp := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
+		remotePeers = append(remotePeers, rp)
+		rp.Start()
+	}
+	return remotePeers
+}
+
+func dialRemotePeers(remotePeers []*remotePeer, addr *NetAddress, t *testing.T) {
+	for _, rp := range remotePeers {
+		c, err := rp.Dial(addr)
+		require.NoError(t, err)
+		// spawn a reading routine to prevent connection from closing
+		go func(c net.Conn) {
+			for {
+				one := make([]byte, 1)
+				_, err := c.Read(one)
+				if err != nil {
+					return
+				}
+			}
+		}(c)
+	}
+	// wait till the switch adds rp to the peer set
+	time.Sleep(50 * time.Millisecond)
+}
+
+
 func TestSwitches(t *testing.T) {
 	s1, s2 := MakeSwitchPair(t, initSwitchFunc)
 	defer s1.Stop()
@@ -530,46 +560,19 @@ func TestSwitchFullConnectivity(t *testing.T) {
 
 func TestSwitchAcceptRoutine(t *testing.T) {
 	cfg.MaxNumInboundPeers = 5
-	unconditionalNodeCnt := 2
-	remoteUnconditionalPeers := make([]*remotePeer, 0)
+	const unconditionalNodeCnt = 6
 	var unconditionalNodeIds []string
-
-	for i := 0; i < unconditionalNodeCnt; i++ {
-		rup := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
-		remoteUnconditionalPeers = append(remoteUnconditionalPeers, rup)
-		rup.Start()
-		unconditionalNodeIds = append(unconditionalNodeIds, string(rup.ID()))
-	}
 
 	// make switch
 	sw := MakeSwitch(cfg, 1, "testing", "123.123.123", initSwitchFunc)
-	sw.AddUnconditionalPeerIDs(unconditionalNodeIds)
 	err := sw.Start()
 	require.NoError(t, err)
 	defer sw.Stop()
-
-	remotePeers := make([]*remotePeer, 0)
 	assert.Equal(t, 0, sw.Peers().Size())
 
 	// 1. check we connect up to MaxNumInboundPeers
-	for i := 0; i < cfg.MaxNumInboundPeers; i++ {
-		rp := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
-		remotePeers = append(remotePeers, rp)
-		rp.Start()
-		c, err := rp.Dial(sw.NetAddress())
-		require.NoError(t, err)
-		// spawn a reading routine to prevent connection from closing
-		go func(c net.Conn) {
-			for {
-				one := make([]byte, 1)
-				_, err := c.Read(one)
-				if err != nil {
-					return
-				}
-			}
-		}(c)
-	}
-	time.Sleep(10 * time.Millisecond)
+	remotePeers := makeRemotePeers(cfg.MaxNumInboundPeers)
+	dialRemotePeers(remotePeers, sw.NetAddress(), t)
 	assert.Equal(t, cfg.MaxNumInboundPeers, sw.Peers().Size())
 
 	// 2. check we close new connections if we already have MaxNumInboundPeers peers
@@ -585,108 +588,28 @@ func TestSwitchAcceptRoutine(t *testing.T) {
 	assert.Equal(t, cfg.MaxNumInboundPeers, sw.Peers().Size())
 	rp.Stop()
 
+	// 3. check we connect up to unconditionalPeers if we already have MaxNumInboundPeers peers
+	remoteUnconditionalPeers := makeRemotePeers(unconditionalNodeCnt)
 	for _, rup := range remoteUnconditionalPeers {
-		c, err := rup.Dial(sw.NetAddress())
-		require.NoError(t, err)
-		// spawn a reading routine to prevent connection from closing
-		go func(c net.Conn) {
-			for {
-				one := make([]byte, 1)
-				_, err := c.Read(one)
-				if err != nil {
-					return
-				}
-			}
-		}(c)
-	}
-	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, cfg.MaxNumInboundPeers+unconditionalNodeCnt, sw.Peers().Size())
-
-	// stop remote peers
-	for _, rp := range remotePeers {
-		rp.Stop()
-	}
-	// stop remote unconditional peers
-	for _, rup := range remoteUnconditionalPeers {
-		rup.Stop()
-	}
-}
-
-func TestSwitchAcceptRoutineUnconditionalPeersFirst(t *testing.T) {
-	cfg.MaxNumInboundPeers = 5
-	unconditionalNodeCnt := 7
-	remoteUnconditionalPeers := make([]*remotePeer, 0)
-	var unconditionalNodeIds []string
-
-	for i := 0; i < unconditionalNodeCnt; i++ {
-		rup := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
-		remoteUnconditionalPeers = append(remoteUnconditionalPeers, rup)
-		rup.Start()
 		unconditionalNodeIds = append(unconditionalNodeIds, string(rup.ID()))
 	}
-
-	// make switch
-	sw := MakeSwitch(cfg, 1, "testing", "123.123.123", initSwitchFunc)
 	sw.AddUnconditionalPeerIDs(unconditionalNodeIds)
-	err := sw.Start()
-	require.NoError(t, err)
-	defer sw.Stop()
+	dialRemotePeers(remoteUnconditionalPeers, sw.NetAddress(), t)
+	assert.Equal(t, cfg.MaxNumInboundPeers+unconditionalNodeCnt, sw.Peers().Size())
 
-	remotePeers := make([]*remotePeer, 0)
+	// reset peers for next test
+	for _, i := range sw.Peers().List() {
+		sw.StopPeerGracefully(i)
+	}
 	assert.Equal(t, 0, sw.Peers().Size())
 
-	for _, rup := range remoteUnconditionalPeers {
-		c, err := rup.Dial(sw.NetAddress())
-		require.NoError(t, err)
-		// spawn a reading routine to prevent connection from closing
-		go func(c net.Conn) {
-			for {
-				one := make([]byte, 1)
-				_, err := c.Read(one)
-				if err != nil {
-					return
-				}
-			}
-		}(c)
-	}
-
-	time.Sleep(10 * time.Millisecond)
+	// 4. check we connect up to unconditionalPeers over MaxNumInboundPeers if we don't have normal peers
+	dialRemotePeers(remoteUnconditionalPeers, sw.NetAddress(), t)
 	assert.Equal(t, unconditionalNodeCnt, sw.Peers().Size())
-	assert.True(t, sw.Peers().Size() > cfg.MaxNumInboundPeers)
 
-	// check we connect up to MaxNumInboundPeers
-	for i := 0; i < cfg.MaxNumInboundPeers; i++ {
-		rp := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
-		remotePeers = append(remotePeers, rp)
-		rp.Start()
-		c, err := rp.Dial(sw.NetAddress())
-		require.NoError(t, err)
-		// spawn a reading routine to prevent connection from closing
-		go func(c net.Conn) {
-			for {
-				one := make([]byte, 1)
-				_, err := c.Read(one)
-				if err != nil {
-					return
-				}
-			}
-		}(c)
-	}
-	time.Sleep(10 * time.Millisecond)
+	// 5. check we connect up to new connections if we already have over MaxNumInboundPeers unconditionalPeers
+	dialRemotePeers(remotePeers, sw.NetAddress(), t)
 	assert.Equal(t, cfg.MaxNumInboundPeers+unconditionalNodeCnt, sw.Peers().Size())
-
-	// check we close new connections if we already have MaxNumInboundPeers peers
-	rp := &remotePeer{PrivKey: ed25519.GenPrivKey(), Config: cfg}
-	rp.Start()
-	conn, err := rp.Dial(sw.NetAddress())
-	require.NoError(t, err)
-	// check conn is closed
-	one := make([]byte, 1)
-	conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
-	_, err = conn.Read(one)
-	assert.Equal(t, io.EOF, err)
-	assert.Equal(t, cfg.MaxNumInboundPeers+unconditionalNodeCnt, sw.Peers().Size())
-	rp.Stop()
 
 	// stop remote peers
 	for _, rp := range remotePeers {
