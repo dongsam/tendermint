@@ -336,10 +336,9 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height-int64(i))
 			fmt.Println(lastCommit, cs.LastCommit.String(), cs.config.DoubleSignCheckHeight)
 			if lastCommit != nil {
-				for _, v := range lastCommit.Precommits {
-					if v != nil && !v.BlockID.IsZero() && bytes.Equal(v.ValidatorAddress, cs.privValidator.GetPubKey().Address()) {
-						fmt.Println("[double sign protection6] already running", v, v.ValidatorAddress, cs.privValidator.GetPubKey().Address(), cs.config.DoubleSignCheckHeight)
-						//panic(fmt.Sprintf("[double sign protection6] restart after %d", cs.config.DoubleSignCheckHeight))
+				for _, s := range lastCommit.Signatures {
+					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, cs.privValidator.GetPubKey().Address()) {
+						fmt.Println("[double sign protection] already running", s, s.ValidatorAddress, cs.privValidator.GetPubKey().Address(), cs.config.DoubleSignCheckHeight, s.BlockIDFlag)
 						return ErrDoubleSignProtection
 					}
 				}
