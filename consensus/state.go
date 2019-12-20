@@ -332,11 +332,13 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	}
 
 	if cs.Height > int64(cs.config.DoubleSignCheckHeight) {
+		fmt.Println(cs.Height, cs.Round, cs.Step)
 		for i := int64(1); i<=cs.config.DoubleSignCheckHeight; i++ {
 			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height-int64(i))
 			fmt.Println(lastCommit, cs.LastCommit.String(), cs.config.DoubleSignCheckHeight)
 			if lastCommit != nil {
 				for _, s := range lastCommit.Signatures {
+					fmt.Println(s.String(), s.Absent(), s.BlockIDFlag, s.ValidatorAddress, cs.privValidator.GetPubKey().Address())
 					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, cs.privValidator.GetPubKey().Address()) {
 						fmt.Println("[double sign protection] already running", s, s.ValidatorAddress, cs.privValidator.GetPubKey().Address(), cs.config.DoubleSignCheckHeight, s.BlockIDFlag)
 						return ErrDoubleSignProtection
@@ -720,6 +722,12 @@ func (cs *State) handleMsg(mi msgInfo) {
 			err = nil
 		}
 	case *VoteMessage:
+		voteSet := cs.Votes.GetVoteSet(msg.Vote.Round, msg.Vote.Type)
+		alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+		if alreadyVote != nil {
+			fmt.Println("@@@@@@@@ alreadyVote22222 ", alreadyVote)
+		}
+
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
 		added, err = cs.tryAddVote(msg.Vote, peerID)
@@ -1714,6 +1722,12 @@ func (cs *State) addVote(
 	}
 
 	height := cs.Height
+	fmt.Println("receiveRoutine-addVote", vote.Height, vote.Round, cs.Height, cs.Round, vote)
+	voteSet := cs.Votes.GetVoteSet(vote.Round, vote.Type)
+	alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+	if alreadyVote != nil {
+		fmt.Println("@@@@@@@@ alreadyVote", alreadyVote)
+	}
 	added, err = cs.Votes.AddVote(vote, peerID)
 	if !added {
 		// Either duplicate, or error upon cs.Votes.AddByIndex()
@@ -1843,6 +1857,7 @@ func (cs *State) signVote(
 		Type:             msgType,
 		BlockID:          types.BlockID{Hash: hash, PartsHeader: header},
 	}
+	// sign executed here
 	err := cs.privValidator.SignVote(cs.state.ChainID, vote)
 	return vote, err
 }
@@ -1871,6 +1886,15 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	// if we don't have a key or we're not in the validator set, do nothing
 	if cs.privValidator == nil || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
 		return nil
+	}
+	// cs.config  need to flag
+	rvs := cs.Votes.GetRoundVoteSets()
+	for i, v := range rvs {
+		fmt.Println("GetRoundVoteSets", i, v.Prevotes, v.Precommits)
+	}
+	ingCommit := cs.blockStore.LoadSeenCommit(cs.blockStore.Height())
+	if ingCommit != nil {
+		fmt.Println("signAddVote", ingCommit.Height, ingCommit.Round, ingCommit.Signatures)
 	}
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {

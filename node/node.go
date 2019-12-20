@@ -612,7 +612,7 @@ func NewNode(config *cfg.Config,
 			return nil, errors.Wrap(err, "error with private validator socket client")
 		}
 	}
-
+	// TODO: ADR MODE
 	pubKey := privValidator.GetPubKey()
 	if pubKey == nil {
 		// TODO: GetPubKey should return errors - https://github.com/tendermint/tendermint/issues/3602
@@ -652,7 +652,7 @@ func NewNode(config *cfg.Config,
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
 
-	// Make ConsensusReactor
+	// Make ConsensusReactor  // TODO: ADR MODE
 	consensusReactor, consensusState := createConsensusReactor(
 		config, state, blockExec, blockStore, mempool, evidencePool,
 		privValidator, csMetrics, fastSync, eventBus, consensusLogger,
@@ -714,7 +714,7 @@ func NewNode(config *cfg.Config,
 	node := &Node{
 		config:        config,
 		genesisDoc:    genDoc,
-		privValidator: privValidator,
+		privValidator: privValidator,  // TODO: ADR MODE
 
 		transport: transport,
 		sw:        sw,

@@ -295,7 +295,8 @@ func execBlockOnProxyApp(
 			return nil, err
 		}
 	}
-
+	//block.LastCommit.Signatures
+	//block.LastCommit
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {

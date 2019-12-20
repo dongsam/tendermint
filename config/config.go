@@ -288,7 +288,7 @@ func (cfg BaseConfig) ValidateBasic() error {
 
 // DefaultLogLevel returns a default log level of "error"
 func DefaultLogLevel() string {
-	return "error"
+	return "info"
 }
 
 // DefaultPackageLogLevels returns a default log level setting so all packages
@@ -771,13 +771,13 @@ type ConsensusConfig struct {
 func DefaultConsensusConfig() *ConsensusConfig {
 	return &ConsensusConfig{
 		WalPath:                     filepath.Join(defaultDataDir, "cs.wal", "wal"),
-		TimeoutPropose:              3000 * time.Millisecond,
-		TimeoutProposeDelta:         500 * time.Millisecond,
-		TimeoutPrevote:              1000 * time.Millisecond,
-		TimeoutPrevoteDelta:         500 * time.Millisecond,
-		TimeoutPrecommit:            1000 * time.Millisecond,
-		TimeoutPrecommitDelta:       500 * time.Millisecond,
-		TimeoutCommit:               1000 * time.Millisecond,
+		TimeoutPropose:              30 * time.Millisecond,
+		TimeoutProposeDelta:         50 * time.Millisecond,
+		TimeoutPrevote:              10 * time.Millisecond,
+		TimeoutPrevoteDelta:         50 * time.Millisecond,
+		TimeoutPrecommit:            10 * time.Millisecond,
+		TimeoutPrecommitDelta:       50 * time.Millisecond,
+		TimeoutCommit:               10 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
 		CreateEmptyBlocksInterval:   0 * time.Second,
