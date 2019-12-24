@@ -940,6 +940,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
+	// TODO: ADR tendermint mode, skip if full node mode, not validator mode
 	// Nothing more to do if we're not a validator
 	if cs.privValidator == nil {
 		logger.Debug("This node is not a validator")
@@ -1883,6 +1884,7 @@ func (cs *State) voteTime() time.Time {
 
 // sign the vote and publish on internalMsgQueue
 func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header types.PartSetHeader) *types.Vote {
+	// todo: ADR tendermint mode
 	// if we don't have a key or we're not in the validator set, do nothing
 	if cs.privValidator == nil || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
 		return nil
