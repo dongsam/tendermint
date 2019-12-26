@@ -323,6 +323,12 @@ func TestNodeNewNodeCustomReactors(t *testing.T) {
 	assert.Equal(t, customBlockchainReactor, n.Switch().Reactor("BLOCKCHAIN"))
 }
 
+func TestNil(t *testing.T) {
+	var test types.PrivValidator
+	res := test.GetPubKey()
+	assert.Equal(t, res, nil)
+}
+
 func state(nVals int, height int64) (sm.State, dbm.DB) {
 	vals := make([]types.GenesisValidator, nVals)
 	for i := 0; i < nVals; i++ {

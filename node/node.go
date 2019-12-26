@@ -108,9 +108,15 @@ func DefaultNewNode(config *cfg.Config, logger log.Logger) (*Node, error) {
 		)
 		oldPV.Upgrade(newPrivValKey, newPrivValState)
 	}
-
+	var privValidator *privval.FilePV
+	switch {
+	case config.Mode == cfg.ModeValidator:
+		privValidator = privval.LoadOrGenFilePV(newPrivValKey, newPrivValState)
+	case config.Mode == cfg.ModeFullNode:
+		privValidator = nil
+	}
 	return NewNode(config,
-		privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),
+		privValidator,
 		nodeKey,
 		proxy.DefaultClientCreator(config.ProxyApp, config.ABCI, config.DBDir()),
 		DefaultGenesisDocProviderFunc(config),
@@ -284,12 +290,13 @@ func doHandshake(
 	return nil
 }
 
-func logNodeStartupInfo(state sm.State, pubKey crypto.PubKey, logger, consensusLogger log.Logger) {
+func logNodeStartupInfo(state sm.State, pubKey crypto.PubKey, logger, consensusLogger log.Logger, mode string) {
 	// Log the version info.
 	logger.Info("Version info",
 		"software", version.TMCoreSemVer,
 		"block", version.BlockProtocol,
 		"p2p", version.P2PProtocol,
+		"mode", mode,
 	)
 
 	// If the state and software differ in block version, at least log it.
@@ -299,13 +306,17 @@ func logNodeStartupInfo(state sm.State, pubKey crypto.PubKey, logger, consensusL
 			"state", state.Version.Consensus.Block,
 		)
 	}
-
-	addr := pubKey.Address()
-	// Log whether this node is a validator or an observer
-	if state.Validators.HasAddress(addr) {
-		consensusLogger.Info("This node is a validator", "addr", addr, "pubKey", pubKey)
-	} else {
-		consensusLogger.Info("This node is not a validator", "addr", addr, "pubKey", pubKey)
+	switch {
+	case mode == cfg.ModeFullNode:
+		consensusLogger.Info("This node is a fullnode")
+	case mode == cfg.ModeValidator:
+		addr := pubKey.Address()
+		// Log whether this node is a validator or an observer
+		if state.Validators.HasAddress(addr) {
+			consensusLogger.Info("This node is a validator", "addr", addr, "pubKey", pubKey)
+		} else {
+			consensusLogger.Info("This node is not in ValidatorSet", "addr", addr, "pubKey", pubKey)
+		}
 	}
 }
 
@@ -314,7 +325,7 @@ func onlyValidatorIsUs(state sm.State, privVal types.PrivValidator) bool {
 		return false
 	}
 	addr, _ := state.Validators.GetByIndex(0)
-	return bytes.Equal(privVal.GetPubKey().Address(), addr)
+	return privVal != nil && bytes.Equal(privVal.GetPubKey().Address(), addr)
 }
 
 func createMempoolAndMempoolReactor(config *cfg.Config, proxyApp proxy.AppConns,
@@ -613,13 +624,15 @@ func NewNode(config *cfg.Config,
 		}
 	}
 	// TODO: ADR MODE
-	pubKey := privValidator.GetPubKey()
-	if pubKey == nil {
-		// TODO: GetPubKey should return errors - https://github.com/tendermint/tendermint/issues/3602
-		return nil, errors.New("could not retrieve public key from private validator")
+	var pubKey crypto.PubKey
+	if config.Mode == cfg.ModeValidator {
+		pubKey := privValidator.GetPubKey()
+		if pubKey == nil {
+			// TODO: GetPubKey should return errors - https://github.com/tendermint/tendermint/issues/3602
+			return nil, errors.New("could not retrieve public key from private validator")
+		}
 	}
-
-	logNodeStartupInfo(state, pubKey, logger, consensusLogger)
+	logNodeStartupInfo(state, pubKey, logger, consensusLogger, config.Mode)
 
 	// Decide whether to fast-sync or not
 	// We don't fast-sync when the only validator is us.
