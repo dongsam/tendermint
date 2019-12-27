@@ -115,8 +115,9 @@ func DefaultNewNode(config *cfg.Config, logger log.Logger) (*Node, error) {
 	case config.Mode == cfg.ModeFullNode:
 		privValidator = nil
 	}
+	fmt.Println("mode", config.Mode, privValidator)
 	return NewNode(config,
-		privValidator,
+		privValidator, // occur type casting, now casted privValidator is not nil even was privValidator = nil
 		nodeKey,
 		proxy.DefaultClientCreator(config.ProxyApp, config.ABCI, config.DBDir()),
 		DefaultGenesisDocProviderFunc(config),
@@ -626,7 +627,7 @@ func NewNode(config *cfg.Config,
 	// TODO: ADR MODE
 	var pubKey crypto.PubKey
 	if config.Mode == cfg.ModeValidator {
-		pubKey := privValidator.GetPubKey()
+		pubKey = privValidator.GetPubKey()
 		if pubKey == nil {
 			// TODO: GetPubKey should return errors - https://github.com/tendermint/tendermint/issues/3602
 			return nil, errors.New("could not retrieve public key from private validator")
@@ -869,8 +870,11 @@ func (n *Node) ConfigureRPC() {
 	rpccore.SetEvidencePool(n.evidencePool)
 	rpccore.SetP2PPeers(n.sw)
 	rpccore.SetP2PTransport(n)
-	pubKey := n.privValidator.GetPubKey()
-	rpccore.SetPubKey(pubKey)
+	// TODO: ADR Tendermint Mode
+	if n.config.Mode == cfg.ModeValidator {
+		pubKey := n.privValidator.GetPubKey()
+		rpccore.SetPubKey(pubKey)
+	}
 	rpccore.SetGenesisDoc(n.genesisDoc)
 	rpccore.SetProxyAppQuery(n.proxyApp.Query())
 	rpccore.SetTxIndexer(n.txIndexer)

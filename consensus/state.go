@@ -331,23 +331,27 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 		}
 	}
 
-	if cs.Height > int64(cs.config.DoubleSignCheckHeight) {
-		fmt.Println(cs.Height, cs.Round, cs.Step)
+	// Double Signing Detection
+	//if cs.privValidator != (types.PrivValidator)(nil) && cs.Height > int64(cs.config.DoubleSignCheckHeight) {
+	if !cs.privValidator.Empty() && cs.Height > int64(cs.config.DoubleSignCheckHeight) {
+		fmt.Println(cs.Height, cs.Round, cs.Step, cs.privValidator)
+		fmt.Println(cs.privValidator)
+		valAddr := cs.privValidator.GetPubKey().Address()
 		for i := int64(1); i<=cs.config.DoubleSignCheckHeight; i++ {
 			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height-int64(i))
 			fmt.Println(lastCommit, cs.LastCommit.String(), cs.config.DoubleSignCheckHeight)
 			if lastCommit != nil {
 				for _, s := range lastCommit.Signatures {
-					fmt.Println(s.String(), s.Absent(), s.BlockIDFlag, s.ValidatorAddress, cs.privValidator.GetPubKey().Address())
-					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, cs.privValidator.GetPubKey().Address()) {
-						fmt.Println("[double sign protection] already running", s, s.ValidatorAddress, cs.privValidator.GetPubKey().Address(), cs.config.DoubleSignCheckHeight, s.BlockIDFlag)
+					fmt.Println(s.String(), s.Absent(), s.BlockIDFlag, s.ValidatorAddress, valAddr)
+					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr) {
+						fmt.Println("[double sign protection] already running", s, s.ValidatorAddress, valAddr,
+							cs.config.DoubleSignCheckHeight, s.BlockIDFlag)
 						return ErrDoubleSignProtection
 					}
 				}
 			}
 		}
 	}
-
 
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
@@ -722,11 +726,11 @@ func (cs *State) handleMsg(mi msgInfo) {
 			err = nil
 		}
 	case *VoteMessage:
-		voteSet := cs.Votes.GetVoteSet(msg.Vote.Round, msg.Vote.Type)
-		alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
-		if alreadyVote != nil {
-			fmt.Println("@@@@@@@@ alreadyVote22222 ", alreadyVote)
-		}
+		//voteSet := cs.Votes.GetVoteSet(msg.Vote.Round, msg.Vote.Type)
+		//alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+		//if alreadyVote != nil {
+		//	fmt.Println("@@@@@@@@ alreadyVote22222 ", alreadyVote)
+		//}
 
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
@@ -942,7 +946,8 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	// TODO: ADR tendermint mode, skip if full node mode, not validator mode
 	// Nothing more to do if we're not a validator
-	if cs.privValidator == nil {
+	//if cs.privValidator == nil {
+	if cs.privValidator.Empty() {
 		logger.Debug("This node is not a validator")
 		return
 	}
@@ -1723,12 +1728,12 @@ func (cs *State) addVote(
 	}
 
 	height := cs.Height
-	fmt.Println("receiveRoutine-addVote", vote.Height, vote.Round, cs.Height, cs.Round, vote)
-	voteSet := cs.Votes.GetVoteSet(vote.Round, vote.Type)
-	alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
-	if alreadyVote != nil {
-		fmt.Println("@@@@@@@@ alreadyVote", alreadyVote)
-	}
+	//fmt.Println("receiveRoutine-addVote", vote.Height, vote.Round, cs.Height, cs.Round, vote)
+	//voteSet := cs.Votes.GetVoteSet(vote.Round, vote.Type)
+	//alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
+	//if alreadyVote != nil {
+	//	fmt.Println("@@@@@@@@ alreadyVote", alreadyVote)
+	//}
 	added, err = cs.Votes.AddVote(vote, peerID)
 	if !added {
 		// Either duplicate, or error upon cs.Votes.AddByIndex()
@@ -1886,7 +1891,8 @@ func (cs *State) voteTime() time.Time {
 func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header types.PartSetHeader) *types.Vote {
 	// todo: ADR tendermint mode
 	// if we don't have a key or we're not in the validator set, do nothing
-	if cs.privValidator == nil || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
+	//if cs.privValidator == nil || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
+	if cs.privValidator.Empty() || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
 		return nil
 	}
 	// cs.config  need to flag

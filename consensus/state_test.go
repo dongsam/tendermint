@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/tendermint/tendermint/privval"
 	"testing"
 	"time"
 
@@ -713,7 +714,49 @@ func TestStateLockPOLSafety1(t *testing.T) {
 
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], propBlock.Hash())
-
+	var pv *privval.FilePV
+	var tmp *privval.FilePV
+	pv = nil
+	tmp = nil
+	if pv != nil {
+		tmp = nil
+	}else {
+		tmp = nil
+	}
+	if pv.Empty() {
+		tmp = nil
+	}else {
+		tmp = nil
+	}
+	if pv != (types.PrivValidator)(nil) {
+		tmp = nil
+	}else {
+		tmp = nil
+	}
+	a := types.PrivValidator(pv)
+	if a != (*privval.FilePV)(nil) {
+		tmp = nil
+	}else {
+		tmp = nil
+	}
+	if a == (types.PrivValidator)(nil) {
+		tmp = nil
+	}else {
+		tmp = nil
+	}
+	if a.Empty() {
+		tmp = nil
+	}else {
+		tmp = nil
+	}
+	if tmp.Empty() {
+		tmp = nil
+	}
+	if vs4.PrivValidator.Empty() {
+		tmp = nil
+	} else {
+		tmp = nil
+	}
 	// the others sign a polka but we don't see it
 	prevotes := signVotes(types.PrevoteType, propBlock.Hash(), propBlock.MakePartSet(partSize).Header(), vs2, vs3, vs4)
 

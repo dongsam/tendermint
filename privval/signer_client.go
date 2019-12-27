@@ -129,3 +129,7 @@ func (sc *SignerClient) SignProposal(chainID string, proposal *types.Proposal) e
 
 	return nil
 }
+
+func (sc *SignerClient) Empty() bool {
+	return sc == (*SignerClient)(nil)
+}
