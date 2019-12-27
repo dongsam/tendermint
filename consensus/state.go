@@ -333,7 +333,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 
 	// Double Signing Detection
 	//if cs.privValidator != (types.PrivValidator)(nil) && cs.Height > int64(cs.config.DoubleSignCheckHeight) {
-	if !cs.privValidator.Empty() && cs.Height > int64(cs.config.DoubleSignCheckHeight) {
+	if !(cs.privValidator == nil || cs.privValidator.Empty()) && cs.Height > int64(cs.config.DoubleSignCheckHeight) {
 		fmt.Println(cs.Height, cs.Round, cs.Step, cs.privValidator)
 		fmt.Println(cs.privValidator)
 		valAddr := cs.privValidator.GetPubKey().Address()
@@ -947,7 +947,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	// TODO: ADR tendermint mode, skip if full node mode, not validator mode
 	// Nothing more to do if we're not a validator
 	//if cs.privValidator == nil {
-	if cs.privValidator.Empty() {
+	if cs.privValidator == nil || cs.privValidator.Empty() { // test fail, nil pointer
 		logger.Debug("This node is not a validator")
 		return
 	}
@@ -1892,7 +1892,7 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	// todo: ADR tendermint mode
 	// if we don't have a key or we're not in the validator set, do nothing
 	//if cs.privValidator == nil || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
-	if cs.privValidator.Empty() || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
+	if cs.privValidator == nil || cs.privValidator.Empty() || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
 		return nil
 	}
 	// cs.config  need to flag

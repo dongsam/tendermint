@@ -121,7 +121,7 @@ func TestStateProposerSelection2(t *testing.T) {
 	}
 
 }
-
+// TODO: ADR Tendermint Mode Validator
 // a non-validator should timeout into the prevote round
 func TestStateEnterProposeNoPrivValidator(t *testing.T) {
 	cs, _ := randState(1)
