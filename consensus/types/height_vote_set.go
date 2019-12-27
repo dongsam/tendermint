@@ -117,7 +117,7 @@ func (hvs *HeightVoteSet) AddVote(vote *types.Vote, peerID p2p.ID) (added bool, 
 		return
 	}
 	voteSet := hvs.getVoteSet(vote.Round, vote.Type)
-	fmt.Println("AddVote-voteSet", voteSet)
+	//fmt.Println("AddVote-voteSet", voteSet)
 	if voteSet == nil {
 		if rndz := hvs.peerCatchupRounds[peerID]; len(rndz) < 2 {
 			hvs.addRound(vote.Round)

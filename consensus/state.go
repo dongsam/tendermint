@@ -1895,15 +1895,15 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	if cs.privValidator == nil || cs.privValidator.Empty() || !cs.Validators.HasAddress(cs.privValidator.GetPubKey().Address()) {
 		return nil
 	}
-	// cs.config  need to flag
-	rvs := cs.Votes.GetRoundVoteSets()
-	for i, v := range rvs {
-		fmt.Println("GetRoundVoteSets", i, v.Prevotes, v.Precommits)
-	}
-	ingCommit := cs.blockStore.LoadSeenCommit(cs.blockStore.Height())
-	if ingCommit != nil {
-		fmt.Println("signAddVote", ingCommit.Height, ingCommit.Round, ingCommit.Signatures)
-	}
+	////cs.config  need to flag
+	//rvs := cs.Votes.GetRoundVoteSets()
+	//for i, v := range rvs {
+	//	fmt.Println("GetRoundVoteSets", i, v.Prevotes, v.Precommits)
+	//}
+	//ingCommit := cs.blockStore.LoadSeenCommit(cs.blockStore.Height())
+	//if ingCommit != nil {
+	//	fmt.Println("signAddVote", ingCommit.Height, ingCommit.Round, ingCommit.Signatures)
+	//}
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
