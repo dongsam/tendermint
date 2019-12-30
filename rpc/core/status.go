@@ -42,7 +42,7 @@ func Status(ctx *rpctypes.Context) (*ctypes.ResultStatus, error) {
 	if val := validatorAtHeight(latestHeight); val != nil {
 		votingPower = val.VotingPower
 	}
-	var validatorInfo ctypes.ValidatorInfo
+	validatorInfo := ctypes.ValidatorInfo{}
 	if pubKey != nil {
 		validatorInfo = ctypes.ValidatorInfo{
 			Address:     pubKey.Address(),
