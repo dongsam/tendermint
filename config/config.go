@@ -23,6 +23,7 @@ const (
 
 	ModeFullNode  = "fullnode"
 	ModeValidator = "validator"
+	ModeSeedNode = "seednode"
 	//ModeValidatorWithInit = "validatorWithInit"
 )
 
@@ -307,9 +308,9 @@ func (cfg BaseConfig) ValidateBasic() error {
 		return errors.New("unknown log_format (must be 'plain' or 'json')")
 	}
 	switch cfg.Mode {
-	case ModeFullNode, ModeValidator:
+	case ModeFullNode, ModeValidator, ModeSeedNode:
 	default:
-		return errors.New("unknown mode (must be 'fullnode' or 'validator')")
+		return errors.New("unknown mode (must be 'fullnode' or 'validator' or 'seednode)")
 	}
 	return nil
 }
