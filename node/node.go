@@ -581,12 +581,10 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 }
 
 func NewSeedNode(config *cfg.Config,
-	//privValidator types.PrivValidator,
 	nodeKey *p2p.NodeKey,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
 	dbProvider DBProvider,
-	//metricsProvider MetricsProvider,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
@@ -600,96 +598,11 @@ func NewSeedNode(config *cfg.Config,
 		return nil, err
 	}
 
-
 	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
 	proxyApp, err := createAndStartProxyAppConns(clientCreator, logger)
 	if err != nil {
 		return nil, err
 	}
-
-	// EventBus and IndexerService must be started before the handshake because
-	// we might need to index the txs of the replayed block as this might not have happened
-	// when the node stopped last time (i.e. the node stopped after it saved the block
-	// but before it indexed the txs, or, endblocker panicked)
-	//eventBus, err := createAndStartEventBus(logger)
-	//if err != nil {
-	//  return nil, err
-	//}
-
-	// Transaction indexing
-	//indexerService, txIndexer, err := createAndStartIndexerService(config, dbProvider, eventBus, logger)
-	//if err != nil {
-	//  return nil, err
-	//}
-
-	// Create the handshaker, which calls RequestInfo, sets the AppVersion on the state,
-	// and replays any blocks as necessary to sync tendermint with the app.
-	//consensusLogger := logger.With("module", "consensus")
-	//if err := doHandshake(stateDB, state, blockStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
-	//  return nil, err
-	//}
-
-	// Reload the state. It will have the Version.Consensus.App set by the
-	// Handshake, and may have other modifications as well (ie. depending on
-	// what happened during block replay).
-	//state = sm.LoadState(stateDB)
-
-	// If an address is provided, listen on the socket for a connection from an
-	// external signing process.
-	//if config.PrivValidatorListenAddr != "" {
-	//  // FIXME: we should start services inside OnStart
-	//  privValidator, err = createAndStartPrivValidatorSocketClient(config.PrivValidatorListenAddr, logger)
-	//  if err != nil {
-	//      return nil, errors.Wrap(err, "error with private validator socket client")
-	//  }
-	//}
-	//// TODO: ADR MODE
-	//var pubKey crypto.PubKey
-	//if config.Mode == cfg.ModeValidator {
-	//  pubKey = privValidator.GetPubKey()
-	//  if pubKey == nil {
-	//      // TODO: GetPubKey should return errors - https://github.com/tendermint/tendermint/issues/3602
-	//      return nil, errors.New("could not retrieve public key from private validator")
-	//  }
-	//}
-	//logNodeStartupInfo(state, pubKey, logger, consensusLogger, config.Mode)
-
-	// Decide whether to fast-sync or not
-	// We don't fast-sync when the only validator is us.
-	//fastSync := config.FastSyncMode && !onlyValidatorIsUs(state, privValidator)
-
-	//csMetrics, p2pMetrics, memplMetrics, smMetrics := metricsProvider(genDoc.ChainID)
-
-	// Make MempoolReactor
-	//mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger)
-
-	// Make Evidence Reactor
-	//evidenceReactor, evidencePool, err := createEvidenceReactor(config, dbProvider, stateDB, logger)
-	//if err != nil {
-	//  return nil, err
-	//}
-
-	// make block executor for consensus and blockchain reactors to execute blocks
-	//blockExec := sm.NewBlockExecutor(
-	//  stateDB,
-	//  logger.With("module", "state"),
-	//  proxyApp.Consensus(),
-	//  mempool,
-	//  evidencePool,
-	//  sm.BlockExecutorWithMetrics(smMetrics),
-	//)
-
-	// Make BlockchainReactor
-	//bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, fastSync, logger)
-	//if err != nil {
-	//  return nil, errors.Wrap(err, "could not create blockchain reactor")
-	//}
-	//
-	//// Make ConsensusReactor  // TODO: ADR MODE
-	//consensusReactor, consensusState := createConsensusReactor(
-	//  config, state, blockExec, blockStore, mempool, evidencePool,
-	//  privValidator, csMetrics, fastSync, eventBus, consensusLogger,
-	//)
 
 	nodeInfo, err := makeSeedNodeInfo(config, nodeKey, genDoc, state)
 	if err != nil {
@@ -700,6 +613,7 @@ func NewSeedNode(config *cfg.Config,
 	transport, peerFilters := createTransport(config, nodeInfo, nodeKey, proxyApp)
 
 	// Setup Switch.
+	// TODO: refactoring as function
 	p2pLogger := logger.With("module", "p2p")
 	p2pMetrics := p2p.PrometheusMetrics(config.Instrumentation.Namespace, "chain_id", genDoc.ChainID)
 	sw := createSwitch(
@@ -722,22 +636,9 @@ func NewSeedNode(config *cfg.Config,
 		return nil, errors.Wrap(err, "could not create addrbook")
 	}
 
-	// Optionally, start the pex reactor
-	//
-	// TODO:
-	//
-	// We need to set Seeds and PersistentPeers on the switch,
-	// since it needs to be able to use these (and their DNS names)
-	// even if the PEX is off. We can include the DNS name in the NetAddress,
-	// but it would still be nice to have a clear list of the current "PersistentPeers"
-	// somewhere that we can return with net_info.
-	//
-	// If PEX is on, it should handle dialing the seeds. Otherwise the switch does it.
-	// Note we currently use the addrBook regardless at least for AddOurAddress
-	var pexReactor *pex.Reactor
-	//if config.P2P.PexReactor {
-	pexReactor = createPEXReactorAndAddToSwitch(addrBook, config, sw, logger)
-	//}
+	// start the pex reactor
+	//var pexReactor *pex.Reactor
+	pexReactor := createPEXReactorAndAddToSwitch(addrBook, config, sw, logger)
 
 	if config.ProfListenAddress != "" {
 		go func() {
@@ -748,7 +649,7 @@ func NewSeedNode(config *cfg.Config,
 	node := &Node{
 		config:        config,
 		//genesisDoc:    nil,
-		//privValidator: nil,  // TODO: ADR MODE
+		//privValidator: nil,
 
 		transport: transport,
 		sw:        sw,
@@ -1368,8 +1269,6 @@ func makeSeedNodeInfo(config *cfg.Config, nodeKey *p2p.NodeKey, genDoc *types.Ge
 			version.P2PProtocol, // global
 			state.Version.Consensus.Block,
 			state.Version.Consensus.App,
-			//version.BlockProtocol,
-			//0,
 		),
 		DefaultNodeID: nodeKey.ID(),
 		Network:       genDoc.ChainID,
