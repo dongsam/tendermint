@@ -392,11 +392,26 @@ func (mem *CListMempool) resCbFirstTime(
 			mem.notifyTxsAvailable()
 		} else {
 			// ignore bad transaction
-			mem.logger.Info("Rejected bad transaction",
-				"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
-			mem.metrics.FailedTxs.Add(1)
-			// remove from cache (it might be good later)
-			mem.cache.Remove(tx)
+			//mem.logger.Info("Rejected bad transaction",
+			//	"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+			//mem.metrics.FailedTxs.Add(1)
+			//// remove from cache (it might be good later)
+			//mem.cache.Remove(tx)
+			fmt.Println(mem.config)
+			memTx := &mempoolTx{
+				height:    mem.height,
+				gasWanted: r.CheckTx.GasWanted,
+				tx:        tx,
+			}
+			memTx.senders.Store(peerID, true)
+			mem.addTx(memTx)
+			mem.logger.Info("Added good transaction2",
+				"tx", txID(tx),
+				"res", r,
+				"height", memTx.height,
+				"total", mem.Size(),
+			)
+			mem.notifyTxsAvailable()
 		}
 	default:
 		// ignore other messages
@@ -501,6 +516,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 		}
 		totalGas = newTotalGas
 		txs = append(txs, memTx.tx)
+		txs = append(txs, memTx.tx)
 	}
 	return txs
 }
@@ -599,13 +615,13 @@ func (mem *CListMempool) recheckTxs() {
 
 	// Push txs to proxyAppConn
 	// NOTE: globalCb may be called concurrently.
-	for e := mem.txs.Front(); e != nil; e = e.Next() {
-		memTx := e.Value.(*mempoolTx)
-		mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
-			Tx:   memTx.tx,
-			Type: abci.CheckTxType_Recheck,
-		})
-	}
+	//for e := mem.txs.Front(); e != nil; e = e.Next() {
+	//	memTx := e.Value.(*mempoolTx)
+	//	mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
+	//		Tx:   memTx.tx,
+	//		Type: abci.CheckTxType_Recheck,
+	//	})
+	//}
 
 	mem.proxyAppConn.FlushAsync()
 }
