@@ -36,7 +36,6 @@ var (
 	ErrInvalidProposalSignature = errors.New("error invalid proposal signature")
 	ErrInvalidProposalPOLRound  = errors.New("error invalid proposal POL round")
 	ErrAddingVote               = errors.New("error adding vote")
-	ErrDoubleSignProtection     = errors.New("double sign detected or restarted in DoubleSignCheckHeight")
 )
 
 //-----------------------------------------------------------------------------
@@ -354,41 +353,7 @@ func (cs *State) OnStart() error {
 	if err := cs.timeoutTicker.Start(); err != nil {
 		return err
 	}
-	fmt.Println("[double sign 0]", cs.config.DoubleSignCheckHeight, cs.Height)
-	// Double Signing Risk Reduction Logic, triggered only when validator mode(existing privValidator) and DoubleSignCheckHeight set
-	if !(cs.privValidator == nil || cs.privValidator.Empty()) &&
-		//cs.config.DoubleSignCheckHeight != 0 && cs.Height > cs.config.DoubleSignCheckHeight {
-		cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
-		// TODO: ADR remove debugging code
-		// TODO: ADD logging when cs.Height < cs.config.DoubleSignCheckHeight
-		fmt.Println("[double sign 1] logic in")
-		fmt.Println(cs.Height, cs.Round, cs.Step, cs.privValidator)
-		fmt.Println(cs.privValidator)
-		valAddr, err := cs.privValidator.GetPubKey()
-		if err != nil {
-			return err
-		}
-		var doubleSignCheckHeight int64
-		if cs.config.DoubleSignCheckHeight > cs.Height {
-			doubleSignCheckHeight = cs.Height
-		} else {
-			doubleSignCheckHeight = cs.config.DoubleSignCheckHeight
-		}
-		for i := int64(1); doubleSignCheckHeight > i; i++ {
-			fmt.Println("[double sign 2] logic in", i, doubleSignCheckHeight)
-			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height-i)
-			fmt.Println(lastCommit, cs.LastCommit.String(), doubleSignCheckHeight)
-			if lastCommit != nil {
-				for _, s := range lastCommit.Signatures {
-					fmt.Println(s.String(), s.Absent(), s.BlockIDFlag, s.ValidatorAddress, valAddr)
-					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr.Address()) {
-						fmt.Println("[double sign protection] already running", s, s.ValidatorAddress, valAddr, doubleSignCheckHeight, s.BlockIDFlag)
-						return ErrDoubleSignProtection
-					}
-				}
-			}
-		}
-	}
+
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 
@@ -789,12 +754,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 			err = nil
 		}
 	case *VoteMessage:
-		//voteSet := cs.Votes.GetVoteSet(msg.Vote.Round, msg.Vote.Type)
-		//alreadyVote := voteSet.GetByAddress(cs.privValidator.GetPubKey().Address())
-		//if alreadyVote != nil {
-		//	fmt.Println("@@@@@@@@ alreadyVote22222 ", alreadyVote)
-		//}
-
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
 		added, err = cs.tryAddVote(msg.Vote, peerID)
@@ -2090,6 +2049,7 @@ func (cs *State) voteTime() time.Time {
 
 // sign the vote and publish on internalMsgQueue
 func (cs *State) signAddVote(msgType tmproto.SignedMsgType, hash []byte, header types.PartSetHeader) *types.Vote {
+	//if cs.privValidator == nil { // the node does not have a key
 	if cs.privValidator == nil || cs.privValidator.Empty() {
 		return nil
 	}
