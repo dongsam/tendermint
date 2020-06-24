@@ -36,6 +36,7 @@ var (
 	ErrInvalidProposalSignature = errors.New("error invalid proposal signature")
 	ErrInvalidProposalPOLRound  = errors.New("error invalid proposal POL round")
 	ErrAddingVote               = errors.New("error adding vote")
+	ErrDoubleSignRiskReduction  = errors.New("double sign detected or restarted in DoubleSignCheckHeight")
 )
 
 //-----------------------------------------------------------------------------
@@ -354,6 +355,30 @@ func (cs *State) OnStart() error {
 		return err
 	}
 
+	// Double Signing Risk Reduction Logic
+	// triggered only when validator mode(existing privValidator) and DoubleSignCheckHeight set
+	if !(cs.privValidator == nil) && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+		valAddr, err := cs.privValidator.GetPubKey()
+		if err != nil {
+			return err
+		}
+
+		doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
+		if doubleSignCheckHeight > cs.Height {
+			doubleSignCheckHeight = cs.Height
+		}
+		for i := int64(1); doubleSignCheckHeight > i; i++ {
+			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height - i)
+			if lastCommit != nil {
+				for _, s := range lastCommit.Signatures {
+					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr.Address()) {
+						cs.Logger.Error("Error checking double sign risk reduction logic", "err", ErrDoubleSignRiskReduction)
+						return ErrDoubleSignRiskReduction
+					}
+				}
+			}
+		}
+	}
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 

@@ -36,7 +36,7 @@ if [[ "$ID" == "x" ]]; then # Set "x" to "1" to print to console.
 		--log-opt syslog-address=udp://127.0.0.1:5514 \
 		--log-opt syslog-facility=daemon \
 		--log-opt tag="{{.Name}}" \
-		"$DOCKER_IMAGE" node $NODE_FLAGS --log_level=debug --proxy_app="$APP_PROXY" &
+		"$DOCKER_IMAGE" node $NODE_FLAGS --log_level=debug --consensus.double_sign_check_height 0 --proxy_app="$APP_PROXY" &
 else
 	docker run -d \
 		--net="$NETWORK_NAME" \
@@ -49,5 +49,5 @@ else
 		--log-opt syslog-address=udp://127.0.0.1:5514 \
 		--log-opt syslog-facility=daemon \
 		--log-opt tag="{{.Name}}" \
-		"$DOCKER_IMAGE" node $NODE_FLAGS --log_level=debug --proxy_app="$APP_PROXY"
+		"$DOCKER_IMAGE" node $NODE_FLAGS --log_level=debug --consensus.double_sign_check_height 0 --proxy_app="$APP_PROXY"
 fi
