@@ -33,10 +33,10 @@ import (
 // Errors
 
 var (
-	ErrInvalidProposalSignature = errors.New("error invalid proposal signature")
-	ErrInvalidProposalPOLRound  = errors.New("error invalid proposal POL round")
-	ErrAddingVote               = errors.New("error adding vote")
-	ErrSignatureFoundInPastBlocks  = errors.New("found signature from the same key")
+	ErrInvalidProposalSignature   = errors.New("error invalid proposal signature")
+	ErrInvalidProposalPOLRound    = errors.New("error invalid proposal POL round")
+	ErrAddingVote                 = errors.New("error adding vote")
+	ErrSignatureFoundInPastBlocks = errors.New("found signature from the same key")
 )
 
 //-----------------------------------------------------------------------------
@@ -372,7 +372,7 @@ func (cs *State) OnStart() error {
 				for sigIdx, s := range lastCommit.Signatures {
 					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr.Address()) {
 						cs.Logger.Info("Found signature from the same key", "sig", s, "idx", sigIdx, "height", cs.Height-i)
-						return ErrDoubleSignRiskReduction
+						return ErrSignatureFoundInPastBlocks
 					}
 				}
 			}
