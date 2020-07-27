@@ -366,7 +366,7 @@ func (cs *State) OnStart() error {
 		if doubleSignCheckHeight > cs.Height {
 			doubleSignCheckHeight = cs.Height
 		}
-		for i := int64(1); doubleSignCheckHeight > i; i++ {
+		for i := int64(1); i < doubleSignCheckHeight; i++ {
 			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height - i)
 			if lastCommit != nil {
 				for sigIdx, s := range lastCommit.Signatures {

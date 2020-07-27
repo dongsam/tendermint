@@ -381,7 +381,6 @@ timeout_commit = "{{ .Consensus.TimeoutCommit }}"
 # How many blocks to look back to check existence of the node's consensus votes before joining consensus
 # When non-zero, the node will panic upon restart
 # if the same consensus key was used to sign {double_sign_check_height} last blocks.
-# because the node itself voted on consensus with the same consensus key.
 # So, validators should stop the state machine, wait for some blocks, and then restart the state machine to avoid panic.
 double_sign_check_height = {{ .Consensus.DoubleSignCheckHeight }}
 
