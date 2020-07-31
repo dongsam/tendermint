@@ -368,12 +368,8 @@ func (cs *State) OnStart() error {
 	}
 
 	// Double Signing Risk Reduction
-	if cs.privValidator != nil && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
-		valAddr, err := cs.privValidator.GetPubKey()
-		if err != nil {
-			return err
-		}
-
+	if cs.privValidator != nil && cs.privValidatorPubKey != nil && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+		valAddr := cs.privValidatorPubKey.Address()
 		doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
 		if doubleSignCheckHeight > cs.Height {
 			doubleSignCheckHeight = cs.Height
@@ -382,7 +378,7 @@ func (cs *State) OnStart() error {
 			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height - i)
 			if lastCommit != nil {
 				for sigIdx, s := range lastCommit.Signatures {
-					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr.Address()) {
+					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr) {
 						cs.Logger.Info("Found signature from the same key", "sig", s, "idx", sigIdx, "height", cs.Height-i)
 						return ErrSignatureFoundInPastBlocks
 					}
