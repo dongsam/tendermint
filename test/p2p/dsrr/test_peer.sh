@@ -31,6 +31,7 @@ echo "Testing double sign risk reduction on node $ID"
 # kill peer
 set +e
 	docker rm -vf local_testnet_$ID
+	set -e
 	PERSISTENT_PEERS="$(test/p2p/address.sh $IPV 1 26656 $DOCKER_IMAGE)"
 	for j in `seq 2 $N`; do
 		PERSISTENT_PEERS="$PERSISTENT_PEERS,$(test/p2p/address.sh $IPV $j 26656 $DOCKER_IMAGE)"
