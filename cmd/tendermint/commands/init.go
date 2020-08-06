@@ -27,10 +27,7 @@ func initFiles(cmd *cobra.Command, args []string) error {
 }
 
 func initFilesWithConfig(config *cfg.Config, args []string) error {
-	// tendermint init [validator]
-	//validator := len(args) == 1 && args[1] == "validator"
 	var pv *privval.FilePV
-	// TODO: ADR pv auto gen flag
 	if len(args) == 1 && args[0] == cfg.ModeValidator {
 		privValKeyFile := config.PrivValidatorKeyFile()
 		privValStateFile := config.PrivValidatorStateFile()
