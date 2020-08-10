@@ -7,7 +7,7 @@ ID=$2
 ASSERT_CASE=$3
 ASSERT_NODE_UP=1
 ASSERT_NODE_DOWN=0
-MAX_TRY=5
+MAX_TRY=10
 
 
 ###########################################
