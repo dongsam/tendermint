@@ -39,6 +39,8 @@ import (
 //----------------------------------------------
 // in-process testnets
 
+var defaultTestTime = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+
 func startConsensusNet(t *testing.T, css []*State, n int) (
 	[]*Reactor,
 	[]types.Subscription,
@@ -202,7 +204,7 @@ type mockEvidencePool struct {
 
 func newMockEvidencePool(val types.PrivValidator) *mockEvidencePool {
 	return &mockEvidencePool{
-		ev: []types.Evidence{types.NewMockDuplicateVoteEvidenceWithValidator(1, time.Now().UTC(), val, config.ChainID())},
+		ev: []types.Evidence{types.NewMockDuplicateVoteEvidenceWithValidator(1, defaultTestTime, val, config.ChainID())},
 	}
 }
 
@@ -234,7 +236,7 @@ func (m *mockEvidencePool) IsPending(evidence types.Evidence) bool {
 	return false
 }
 func (m *mockEvidencePool) AddPOLC(*types.ProofOfLockChange) error { return nil }
-func (m *mockEvidencePool) Header(int64) *types.Header             { return nil }
+func (m *mockEvidencePool) Header(int64) *types.Header             { return &types.Header{Time: defaultTestTime} }
 
 //------------------------------------
 
@@ -708,8 +710,9 @@ func TestNewRoundStepMessageValidateBasic(t *testing.T) {
 		{true, -1, 0, 0, "Negative round", cstypes.RoundStepNewHeight},
 		{true, 0, 0, -1, "Negative height", cstypes.RoundStepNewHeight},
 		{true, 0, 0, 0, "Invalid Step", cstypes.RoundStepCommit + 1},
-		{true, 0, 0, 1, "H == 1 but LCR != -1 ", cstypes.RoundStepNewHeight},
-		{true, 0, -1, 2, "H > 1 but LCR < 0", cstypes.RoundStepNewHeight},
+		// The following cases will be handled by ValidateHeight
+		{false, 0, 0, 1, "H == 1 but LCR != -1 ", cstypes.RoundStepNewHeight},
+		{false, 0, -1, 2, "H > 1 but LCR < 0", cstypes.RoundStepNewHeight},
 	}
 
 	for _, tc := range testCases {
@@ -722,7 +725,47 @@ func TestNewRoundStepMessageValidateBasic(t *testing.T) {
 				LastCommitRound: tc.messageLastCommitRound,
 			}
 
-			assert.Equal(t, tc.expectErr, message.ValidateBasic() != nil, "Validate Basic had an unexpected result")
+			err := message.ValidateBasic()
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestNewRoundStepMessageValidateHeight(t *testing.T) {
+	initialHeight := int64(10)
+	testCases := []struct { // nolint: maligned
+		expectErr              bool
+		messageLastCommitRound int32
+		messageHeight          int64
+		testName               string
+	}{
+		{false, 0, 11, "Valid Message"},
+		{true, 0, -1, "Negative height"},
+		{true, 0, 0, "Zero height"},
+		{true, 0, 10, "Initial height but LCR != -1 "},
+		{true, -1, 11, "Normal height but LCR < 0"},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.testName, func(t *testing.T) {
+			message := NewRoundStepMessage{
+				Height:          tc.messageHeight,
+				Round:           0,
+				Step:            cstypes.RoundStepNewHeight,
+				LastCommitRound: tc.messageLastCommitRound,
+			}
+
+			err := message.ValidateHeight(initialHeight)
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

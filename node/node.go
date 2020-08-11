@@ -345,7 +345,6 @@ func createEvidenceReactor(config *cfg.Config, dbProvider DBProvider,
 	if err != nil {
 		return nil, nil, err
 	}
-	evidencePool.SetLogger(evidenceLogger)
 	evidenceReactor := evidence.NewReactor(evidencePool)
 	evidenceReactor.SetLogger(evidenceLogger)
 	return evidenceReactor, evidencePool, nil
@@ -565,7 +564,8 @@ func startStateSync(ssR *statesync.Reactor, bcR fastSyncReactor, conR *cs.Reacto
 	state := sm.LoadState(stateDB)
 	if stateProvider == nil {
 		var err error
-		stateProvider, err = statesync.NewLightClientStateProvider(state.ChainID, state.Version,
+		stateProvider, err = statesync.NewLightClientStateProvider(
+			state.ChainID, state.Version, state.InitialHeight,
 			config.RPCServers, light.TrustOptions{
 				Period: config.TrustPeriod,
 				Height: config.TrustHeight,

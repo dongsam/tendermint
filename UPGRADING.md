@@ -26,8 +26,14 @@ if you want to learn more & support it (with cosmos-sdk you get it
  automatically). If you don't want to support it, just leave these methods
  empty.
 
+ `ResponseInitChain.app_hash` has been added, which must match the genesis app
+ hash and is recorded in the genesis block.
+
 `KV.Pair` has been replaced with `abci.EventAttribute`. `EventAttribute.Index`
 field allows ABCI applications to dictate which events should be indexed.
+
+The blockchain can now start from an arbitrary initial height, provided to the
+application via `RequestInitChain.InitialHeight`.
 
 ### P2P Protocol
 
@@ -47,6 +53,11 @@ Merkle tree built from:
 - root hash of a Merkle tree built from `ResponseDeliverTx(Code, Data,
     GasWanted, GasUsed, Events)` responses;
 - `BeginBlock#Events`.
+
+Merkle hashes of empty trees previously returned nothing, but now return the hash of an empty input,
+to conform with RFC-6962. This mainly affects `Header#DataHash`, `Header#LastResultsHash`, and 
+`Header#EvidenceHash`, which are often empty. Non-empty hashes can also be affected, e.g. if their
+inputs depend on other (empty) Merkle hashes, giving different results.
 
 ### Tx Indexing
 
@@ -100,6 +111,9 @@ The multisig that was previously located in Tendermint has now migrated to a new
 
 From the merkle package `SimpleHashFromMap()` and `SimpleProofsFromMap()` were removed along with all the prefixes of `Simple`. If you are looking for `SimpleProof` it has been renamed to `Proof` within the merkle pkg. Previously there were protobuf messages located in the merkle pkg, these have since been moved to the `/proto` directory. The protobuf message `Proof` that contained multiple ProofOp's has been renamed to `ProofOps`. This change effects the ABCI type `ResponseQuery`, the field that was named Proof is now named `ProofOps`.
 
+`HashFromByteSlices` and `ProofsFromByteSlices` now return a hash for empty inputs, to conform with
+RFC-6962.
+
 ### Libs
 
 The Bech32 pkg has been migrated to a new home, you can find it in the [Cosmos-SDK](https://github.com/cosmos/cosmos-sdk/tree/4173ea5ebad906dd9b45325bed69b9c655504867/types/bech32)
@@ -125,6 +139,12 @@ functions) and `Client` object, which represents the complete light client.
 
 RPC client can be found in `/rpc` directory. HTTP(S) proxy is located in
 `/proxy` directory.
+
+### State
+
+A field `State.InitialHeight` has been added to record the initial chain height, which must be `1`
+(not `0`) if starting from height `1`. This can be configured via the genesis field 
+`initial_height`.
 
 ## v0.33.4
 

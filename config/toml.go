@@ -482,6 +482,7 @@ func ResetTestRootWithChainID(testName string, chainID string) *Config {
 var testGenesisFmt = `{
   "genesis_time": "2018-10-10T08:20:13.695936996Z",
   "chain_id": "%s",
+  "initial_height": "1",
   "validators": [
     {
       "pub_key": {
