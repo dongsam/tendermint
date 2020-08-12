@@ -17,12 +17,14 @@ Friendly reminder, we have a [bug bounty program](https://hackerone.com/tendermi
     - [merkle] [\#5193](https://github.com/tendermint/tendermint/pull/5193) `HashFromByteSlices` and `ProofsFromByteSlices` now return a hash for empty inputs, following RFC6962 (@erikgrinaker)
     - [crypto] [\#5214] Change `GenPrivKeySecp256k1` to `GenPrivKeyFromSecret` to be consistent with other keys
     - [state] [\#5191](https://github.com/tendermint/tendermint/pull/5191/files) Add `State.InitialHeight` field to record initial block height, must be `1` (not `0`) to start from 1 (@erikgrinaker)
+    - [state] `LoadStateFromDBOrGenesisFile()` and `LoadStateFromDBOrGenesisDoc()` no longer saves the state in the database if not found, the genesis state is simply returned (@erikgrinaker)
 
 ### FEATURES:
 
 - [abci] [\#5174](https://github.com/tendermint/tendermint/pull/5174) Add amnesia evidence and remove mock and potential amnesia evidence from abci (@cmwaters)
 - [abci] [\#5191](https://github.com/tendermint/tendermint/pull/5191/files) Add `InitChain.InitialHeight` field giving the initial block height (@erikgrinaker)
 - [genesis] [\#5191](https://github.com/tendermint/tendermint/pull/5191/files) Add `initial_height` field to specify the initial chain height (defaults to `1`) (@erikgrinaker)
+- [db] Add support for `badgerdb` database backend (@erikgrinaker)
 - [config] Add `--consensus.double_sign_check_height` flag and `DoubleSignCheckHeight` config variable. See [ADR-51](https://github.com/tendermint/tendermint/blob/master/docs/architecture/adr-051-double-signing-risk-reduction.md)
 
 ### IMPROVEMENTS:
