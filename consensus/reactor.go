@@ -510,6 +510,7 @@ OUTER_LOOP:
 		}
 
 		// If the peer is on a previous height that we have, help catch up.
+		// TODO: double sign detection?
 		if (0 < prs.Height) && (prs.Height < rs.Height) && (prs.Height >= conR.conS.blockStore.Base()) {
 			heightLogger := logger.With("height", prs.Height)
 
@@ -541,6 +542,42 @@ OUTER_LOOP:
 		// Proposal block parts were already matched and sent if any were wanted.
 		// (These can match on hash so the round doesn't matter)
 		// Now consider sending other things, like the Proposal itself.
+		if err := conR.conS.checkDoubleSign(prs.Height); err != nil {
+			//time.Sleep(conR.conS.config.PeerGossipSleepDuration)
+			fmt.Println("@@@@ before panic")
+			panic(err)
+			//continue OUTER_LOOP
+		}
+		if conR.conS.config.DoubleSignCheckHeight != 0 {
+			fmt.Println("@@@@ set to zero")
+			conR.conS.Logger.Info("@@@@ set to zero", "DoubleSignCheckHeight", conR.conS.config.DoubleSignCheckHeight)
+			conR.conS.config.DoubleSignCheckHeight = 0
+		}
+		//cs := conR.conS
+		//cs.Logger.Info("@@@@ start logic", "DoubleSignCheckHeight", cs.config.DoubleSignCheckHeight)
+		//if cs.privValidator != nil && cs.privValidatorPubKey != nil && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+		//	cs.Logger.Info("@@@@ in logic", "DoubleSignCheckHeight", cs.config.DoubleSignCheckHeight)
+		//	valAddr := cs.privValidatorPubKey.Address()
+		//	doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
+		//	if doubleSignCheckHeight > cs.Height {
+		//		doubleSignCheckHeight = cs.Height
+		//	}
+		//	for i := int64(1); i < doubleSignCheckHeight; i++ {
+		//		lastCommit := cs.blockStore.LoadSeenCommit(cs.Height - i)
+		//		if lastCommit != nil {
+		//			for sigIdx, s := range lastCommit.Signatures {
+		//				if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr) {
+		//					cs.Logger.Info("Found signature from the same key", "sig", s, "idx", sigIdx, "height", cs.Height-i)
+		//					cs.Logger.Info("@@@@ set to zero", "DoubleSignCheckHeight", cs.config.DoubleSignCheckHeight)
+		//					cs.config.DoubleSignCheckHeight = 0
+		//					time.Sleep(conR.conS.config.PeerGossipSleepDuration)
+		//					continue OUTER_LOOP
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
+
 
 		// Send Proposal && ProposalPOL BitArray?
 		if rs.Proposal != nil && !prs.Proposal {

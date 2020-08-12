@@ -368,24 +368,30 @@ func (cs *State) OnStart() error {
 	}
 
 	// Double Signing Risk Reduction
-	if cs.privValidator != nil && cs.privValidatorPubKey != nil && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
-		valAddr := cs.privValidatorPubKey.Address()
-		doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
-		if doubleSignCheckHeight > cs.Height {
-			doubleSignCheckHeight = cs.Height
-		}
-		for i := int64(1); i < doubleSignCheckHeight; i++ {
-			lastCommit := cs.blockStore.LoadSeenCommit(cs.Height - i)
-			if lastCommit != nil {
-				for sigIdx, s := range lastCommit.Signatures {
-					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr) {
-						cs.Logger.Info("Found signature from the same key", "sig", s, "idx", sigIdx, "height", cs.Height-i)
-						return ErrSignatureFoundInPastBlocks
-					}
-				}
-			}
-		}
-	}
+	// TODO: need to return Err if not nil
+	//if err := cs.checkDoubleSign(); err != nil {
+	//	return err
+	//}
+	cs.checkDoubleSign(cs.Height)
+
+	//if cs.privValidator != nil && cs.privValidatorPubKey != nil && cs.config.DoubleSignCheckHeight > 0 && cs.Height > 0 {
+	//	valAddr := cs.privValidatorPubKey.Address()
+	//	doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
+	//	if doubleSignCheckHeight > cs.Height {
+	//		doubleSignCheckHeight = cs.Height
+	//	}
+	//	for i := int64(1); i < doubleSignCheckHeight; i++ {
+	//		lastCommit := cs.blockStore.LoadSeenCommit(cs.Height - i)
+	//		if lastCommit != nil {
+	//			for sigIdx, s := range lastCommit.Signatures {
+	//				if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr) {
+	//					cs.Logger.Info("Found signature from the same key", "sig", s, "idx", sigIdx, "height", cs.Height-i)
+	//					//return ErrSignatureFoundInPastBlocks
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 
@@ -2129,6 +2135,31 @@ func (cs *State) updatePrivValidatorPubKey() error {
 		return err
 	}
 	cs.privValidatorPubKey = pubKey
+	return nil
+}
+
+
+//TODO: refactoring double sign risk reduction
+// Double Signing Risk Reduction
+func (cs *State) checkDoubleSign(height int64) error {
+	if cs.privValidator != nil && cs.privValidatorPubKey != nil && cs.config.DoubleSignCheckHeight > 0 && height > 0 {
+		valAddr := cs.privValidatorPubKey.Address()
+		doubleSignCheckHeight := cs.config.DoubleSignCheckHeight
+		if doubleSignCheckHeight > height {
+			doubleSignCheckHeight = height
+		}
+		for i := int64(1); i < doubleSignCheckHeight; i++ {
+			lastCommit := cs.blockStore.LoadSeenCommit(height - i)
+			if lastCommit != nil {
+				for sigIdx, s := range lastCommit.Signatures {
+					if s.BlockIDFlag == types.BlockIDFlagCommit && bytes.Equal(s.ValidatorAddress, valAddr) {
+						cs.Logger.Info("Found signature from the same key", "sig", s, "idx", sigIdx, "height", height-i)
+						return ErrSignatureFoundInPastBlocks
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 

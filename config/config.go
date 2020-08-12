@@ -231,7 +231,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogLevel:           DefaultPackageLogLevels(),
 		LogFormat:          LogFormatPlain,
 		ProfListenAddress:  "",
-		FastSyncMode:       true,
+		FastSyncMode:       false,
 		FilterPeers:        false,
 		DBBackend:          "goleveldb",
 		DBPath:             "data",
@@ -850,7 +850,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		CreateEmptyBlocksInterval:   0 * time.Second,
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
-		DoubleSignCheckHeight:       int64(0),
+		DoubleSignCheckHeight:       int64(10),
 	}
 }
 
