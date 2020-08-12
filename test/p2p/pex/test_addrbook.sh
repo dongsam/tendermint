@@ -25,7 +25,7 @@ docker rm -vf "local_testnet_$ID"
 set -e
 
 # NOTE that we do not provide persistent_peers
-bash test/p2p/peer.sh "$DOCKER_IMAGE" "$NETWORK_NAME" $IPV "$ID" "$PROXY_APP" "--p2p.pex --rpc.unsafe --consensus.double_sign_check_height 0"
+bash test/p2p/peer.sh "$DOCKER_IMAGE" "$NETWORK_NAME" $IPV "$ID" "$PROXY_APP" "--p2p.pex --rpc.unsafe"
 echo "started local_testnet_$ID"
 
 # if the client runs forever, it means addrbook wasn't saved or was empty
@@ -54,7 +54,7 @@ docker rm -vf "local_testnet_$ID"
 set -e
 
 # NOTE that we do not provide persistent_peers
-bash test/p2p/peer.sh "$DOCKER_IMAGE" "$NETWORK_NAME" $IPV "$ID" "$PROXY_APP" "--p2p.pex --rpc.unsafe --consensus.double_sign_check_height 0"
+bash test/p2p/peer.sh "$DOCKER_IMAGE" "$NETWORK_NAME" $IPV "$ID" "$PROXY_APP" "--p2p.pex --rpc.unsafe"
 echo "started local_testnet_$ID"
 
 # if the client runs forever, it means other peers have removed us from their books (which should not happen)
