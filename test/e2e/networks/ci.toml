@@ -24,21 +24,24 @@ validator03 = 50
 validator04 = 100
 validator05 = 50
 
-[node.seed01]
-mode = "seed"
-seeds = ["seed02"]
-
-[node.seed02]
-mode = "seed"
-seeds = ["seed01"]
-
 [node.validator01]
-seeds = ["seed01"]
+mode = "validator"
 snapshot_interval = 5
 perturb = ["disconnect"]
 misbehaviors = { 1018 = "double-prevote" }
 
+[node.seed01]
+mode = "seednode"
+seeds = ["seed02"]
+persistent_peers = ["validator01"]
+
+[node.seed02]
+mode = "seednode"
+seeds = ["seed01"]
+persistent_peers = ["validator01"]
+
 [node.validator02]
+mode = "validator"
 seeds = ["seed02"]
 database = "boltdb"
 abci_protocol = "tcp"
@@ -47,6 +50,7 @@ persist_interval = 0
 perturb = ["restart"]
 
 [node.validator03]
+mode = "validator"
 seeds = ["seed01"]
 database = "badgerdb"
 abci_protocol = "grpc"
@@ -56,6 +60,7 @@ retain_blocks = 3
 perturb = ["kill"]
 
 [node.validator04]
+mode = "validator"
 persistent_peers = ["validator01"]
 database = "rocksdb"
 abci_protocol = "builtin"
@@ -63,6 +68,7 @@ perturb = ["pause"]
 
 [node.validator05]
 start_at = 1005 # Becomes part of the validator set at 1010
+mode = "validator"
 seeds = ["seed02"]
 database = "cleveldb"
 fast_sync = "v0"
@@ -72,15 +78,15 @@ perturb = ["kill", "pause", "disconnect", "restart"]
 
 [node.full01]
 start_at = 1010
-mode = "full"
+mode = "fullnode"
 fast_sync = "v2"
-persistent_peers = ["validator01", "validator02", "validator03", "validator04", "validator05"]
+persistent_peers = ["validator01", "validator02", "validator03", "validator04", "validator05", "seed01", "seed02"]
 retain_blocks = 1
 perturb = ["restart"]
 
 [node.full02]
 start_at = 1015
-mode = "full"
+mode = "fullnode"
 fast_sync = "v2"
 state_sync = true
 seeds = ["seed01"]

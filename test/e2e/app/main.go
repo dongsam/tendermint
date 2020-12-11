@@ -211,6 +211,7 @@ func setupNode() (*config.Config, log.Logger, *p2p.NodeKey, error) {
 		return nil, nil, nil, err
 	}
 	tmcfg = config.DefaultConfig()
+	//tmcfg.Mode = config.ModeValidator
 	err = viper.Unmarshal(tmcfg)
 	if err != nil {
 		return nil, nil, nil, err

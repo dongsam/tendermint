@@ -71,6 +71,9 @@ func waitForNode(node *e2e.Node, height int64, timeout time.Duration) (*rpctypes
 	if err != nil {
 		return nil, err
 	}
+	if node.Mode == e2e.ModeSeed {
+		return nil, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	for {
