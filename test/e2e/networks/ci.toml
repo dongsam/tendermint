@@ -37,7 +37,8 @@ mode = "validator"
 seeds = ["seed01"]
 snapshot_interval = 5
 perturb = ["disconnect"]
-misbehaviors = { 1018 = "double-prevote" }
+# FIXME: maverick has been disabled until it is redesigned (https://github.com/tendermint/tendermint/issues/5575)
+# misbehaviors = { 1018 = "double-prevote" }
 
 [node.validator02]
 mode = "validator"
